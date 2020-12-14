@@ -13,15 +13,7 @@
 #include "ov2640.h"
 #include "ov2640_regs.h"
 #include "ov2640_settings.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
-static const char* TAG = "ov2640";
-#endif
 
 static volatile ov2640_bank_t reg_bank = BANK_MAX;
 static int set_bank(sensor_t *sensor, ov2640_bank_t bank)
@@ -480,7 +472,7 @@ static int _set_pll(sensor_t *sensor, int bypass, int multiplier, int sys_div, i
     return -1;
 }
 
-esp_err_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
+uint8_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
 static int set_xclk(sensor_t *sensor, int timer, int xclk)
 {
     int ret = 0;

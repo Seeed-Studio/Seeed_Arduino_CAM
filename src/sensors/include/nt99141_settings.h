@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "esp_attr.h"
 #include "nt99141_regs.h"
 
 static const ratio_settings_t ratio_table[] = {

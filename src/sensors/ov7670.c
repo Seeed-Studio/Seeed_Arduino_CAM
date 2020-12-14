@@ -12,16 +12,7 @@
 #include "sccb.h"
 #include "ov7670.h"
 #include "ov7670_regs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include <stdio.h>
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
-static const char* TAG = "ov7760";
-#endif
 
 static int ov7670_clkrc = 0x01;
 

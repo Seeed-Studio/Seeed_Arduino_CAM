@@ -16,7 +16,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "esp_attr.h"
 #include "ov2640_regs.h"
 
 typedef enum {

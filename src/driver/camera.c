@@ -14,28 +14,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "time.h"
-#include "sys/time.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
-#include "soc/soc.h"
-#include "soc/gpio_sig_map.h"
-#include "soc/i2s_reg.h"
-#include "soc/i2s_struct.h"
-#include "soc/io_mux_reg.h"
-#include "driver/gpio.h"
-#include "driver/rtc_io.h"
-#include "driver/periph_ctrl.h"
-#include "esp_intr_alloc.h"
-#include "esp_system.h"
-#include "nvs_flash.h"
-#include "nvs.h"
-#include "sensor.h"
-#include "sccb.h"
-#include "esp_camera.h"
-#include "camera_common.h"
-#include "xclk.h"
+#include "sensors/sensor.h"
+#include "driver/sccb.h"
+#include "driver/include/arduino_camera.h"
+#include "driver/camera_common.h"
+#include "driver/xclk.h"
 #if CONFIG_OV2640_SUPPORT
 #include "ov2640.h"
 #endif
@@ -74,13 +57,6 @@ typedef enum {
 #define REG16_CHIDH     0x300A
 #define REG16_CHIDL     0x300B
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#define TAG ""
-#else
-#include "esp_log.h"
-static const char* TAG = "camera";
-#endif
 static const char* CAMERA_SENSOR_NVS_KEY = "sensor";
 static const char* CAMERA_PIXFORMAT_NVS_KEY = "pixformat";
 
@@ -146,7 +122,7 @@ static void i2s_init();
 static int i2s_run();
 static void IRAM_ATTR vsync_isr(void* arg);
 static void IRAM_ATTR i2s_isr(void* arg);
-static esp_err_t dma_desc_init();
+static uint8_t dma_desc_init();
 static void dma_desc_deinit();
 static void dma_filter_task(void *pvParameters);
 static void dma_filter_grayscale(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
@@ -237,7 +213,7 @@ static void camera_fb_deinit()
     }
 }
 
-static esp_err_t camera_fb_init(size_t count)
+static uint8_t camera_fb_init(size_t count)
 {
     if(!count) {
         return ESP_ERR_INVALID_ARG;
@@ -292,7 +268,7 @@ fail:
     return ESP_ERR_NO_MEM;
 }
 
-static esp_err_t dma_desc_init()
+static uint8_t dma_desc_init()
 {
     assert(s_state->width % 4 == 0);
     size_t line_size = s_state->width * s_state->in_bytes_per_pixel *
@@ -956,7 +932,7 @@ static void IRAM_ATTR dma_filter_rgb888_highspeed(const dma_elem_t* src, lldesc_
  * Public Methods
  * */
 
-esp_err_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_model)
+uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_model)
 {
     if (s_state != NULL) {
         return ESP_ERR_INVALID_STATE;
@@ -1120,7 +1096,7 @@ esp_err_t camera_probe(const camera_config_t* config, camera_model_t* out_camera
     return ESP_OK;
 }
 
-esp_err_t camera_init(const camera_config_t* config)
+uint8_t camera_init(const camera_config_t* config)
 {
     if (!s_state) {
         return ESP_ERR_INVALID_STATE;
@@ -1129,7 +1105,7 @@ esp_err_t camera_init(const camera_config_t* config)
         return ESP_ERR_CAMERA_NOT_SUPPORTED;
     }
     memcpy(&s_state->config, config, sizeof(*config));
-    esp_err_t err = ESP_OK;
+    uint8_t err = ESP_OK;
     framesize_t frame_size = (framesize_t) config->frame_size;
     pixformat_t pix_format = (pixformat_t) config->pixel_format;
 
@@ -1366,15 +1342,15 @@ esp_err_t camera_init(const camera_config_t* config)
     return ESP_OK;
 
 fail:
-    esp_camera_deinit();
+    arduino_camera_deinit();
     return err;
 }
 
-esp_err_t esp_camera_init(const camera_config_t* config)
+uint8_t arduino_camera_init(const camera_config_t* config)
 {
     camera_model_t camera_model = CAMERA_NONE;
     i2s_gpio_init(config);
-    esp_err_t err = camera_probe(config, &camera_model);
+    uint8_t err = camera_probe(config, &camera_model);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Camera probe failed with error 0x%x", err);
         goto fail;
@@ -1415,7 +1391,7 @@ fail:
     return err;
 }
 
-esp_err_t esp_camera_deinit()
+uint8_t arduino_camera_deinit()
 {
     if (s_state == NULL) {
         return ESP_ERR_INVALID_STATE;
@@ -1454,7 +1430,7 @@ esp_err_t esp_camera_deinit()
 
 #define FB_GET_TIMEOUT (4000 / portTICK_PERIOD_MS)
 
-camera_fb_t* esp_camera_fb_get()
+camera_fb_t* arduino_camera_fb_get()
 {
     if (s_state == NULL) {
         return NULL;
@@ -1487,7 +1463,7 @@ camera_fb_t* esp_camera_fb_get()
     return (camera_fb_t*)fb;
 }
 
-void esp_camera_fb_return(camera_fb_t * fb)
+void arduino_camera_fb_return(camera_fb_t * fb)
 {
     if(fb == NULL || s_state == NULL || s_state->config.fb_count == 1 || s_state->fb_in == NULL) {
         return;
@@ -1495,7 +1471,7 @@ void esp_camera_fb_return(camera_fb_t * fb)
     xQueueSend(s_state->fb_in, &fb, portMAX_DELAY);
 }
 
-sensor_t * esp_camera_sensor_get()
+sensor_t * arduino_camera_sensor_get()
 {
     if (s_state == NULL) {
         return NULL;
@@ -1503,17 +1479,17 @@ sensor_t * esp_camera_sensor_get()
     return &s_state->sensor;
 }
 
-esp_err_t esp_camera_save_to_nvs(const char *key) 
+uint8_t arduino_camera_save_to_nvs(const char *key) 
 {
 #if ESP_IDF_VERSION_MAJOR > 3
     nvs_handle_t handle;
 #else
     nvs_handle handle;
 #endif
-    esp_err_t ret = nvs_open(key,NVS_READWRITE,&handle);
+    uint8_t ret = nvs_open(key,NVS_READWRITE,&handle);
     
     if (ret == ESP_OK) {
-        sensor_t *s = esp_camera_sensor_get();
+        sensor_t *s = arduino_camera_sensor_get();
         if (s != NULL) {
             ret = nvs_set_blob(handle,CAMERA_SENSOR_NVS_KEY,&s->status,sizeof(camera_status_t));
             if (ret == ESP_OK) {
@@ -1531,7 +1507,7 @@ esp_err_t esp_camera_save_to_nvs(const char *key)
     }
 }
 
-esp_err_t esp_camera_load_from_nvs(const char *key) 
+uint8_t arduino_camera_load_from_nvs(const char *key) 
 {
 #if ESP_IDF_VERSION_MAJOR > 3
     nvs_handle_t handle;
@@ -1540,10 +1516,10 @@ esp_err_t esp_camera_load_from_nvs(const char *key)
 #endif
   uint8_t pf;
 
-  esp_err_t ret = nvs_open(key,NVS_READWRITE,&handle);
+  uint8_t ret = nvs_open(key,NVS_READWRITE,&handle);
   
   if (ret == ESP_OK) {
-      sensor_t *s = esp_camera_sensor_get();
+      sensor_t *s = arduino_camera_sensor_get();
       camera_status_t st;
       if (s != NULL) {
         size_t size = sizeof(camera_status_t);

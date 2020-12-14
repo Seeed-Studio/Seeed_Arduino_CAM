@@ -11,9 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "esp_jpg_decode.h"
+#include "arduino_jpg_decode.h"
 
-#include "esp_system.h"
+#include "arduino_system.h"
 #if ESP_IDF_VERSION_MAJOR >= 4 // IDF 4+
 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
 #include "esp32/rom/tjpgd.h"
@@ -28,8 +28,8 @@
 #include "esp32-hal-log.h"
 #define TAG ""
 #else
-#include "esp_log.h"
-static const char* TAG = "esp_jpg_decode";
+#include "esp32_log.h"
+static const char* TAG = "arduino_jpg_decode";
 #endif
 
 typedef struct {
@@ -39,7 +39,7 @@ typedef struct {
         void * arg;
         size_t len;
         size_t index;
-} esp_jpg_decoder_t;
+} arduino_jpg_decoder_t;
 
 static const char * jd_errors[] = {
     "Succeeded",
@@ -61,7 +61,7 @@ static uint32_t _jpg_write(JDEC *decoder, void *bitmap, JRECT *rect)
     uint16_t h = rect->bottom + 1 - y;
     uint8_t *data = (uint8_t *)bitmap;
 
-    esp_jpg_decoder_t * jpeg = (esp_jpg_decoder_t *)decoder->device;
+    arduino_jpg_decoder_t * jpeg = (arduino_jpg_decoder_t *)decoder->device;
 
     if (jpeg->writer) {
         return jpeg->writer(jpeg->arg, x, y, w, h, data);
@@ -71,7 +71,7 @@ static uint32_t _jpg_write(JDEC *decoder, void *bitmap, JRECT *rect)
 
 static uint32_t _jpg_read(JDEC *decoder, uint8_t *buf, uint32_t len)
 {
-    esp_jpg_decoder_t * jpeg = (esp_jpg_decoder_t *)decoder->device;
+    arduino_jpg_decoder_t * jpeg = (arduino_jpg_decoder_t *)decoder->device;
     if (jpeg->len && len > (jpeg->len - jpeg->index)) {
         len = jpeg->len - jpeg->index;
     }
@@ -85,11 +85,11 @@ static uint32_t _jpg_read(JDEC *decoder, uint8_t *buf, uint32_t len)
     return len;
 }
 
-esp_err_t esp_jpg_decode(size_t len, jpg_scale_t scale, jpg_reader_cb reader, jpg_writer_cb writer, void * arg)
+arduino_err_t arduino_jpg_decode(size_t len, jpg_scale_t scale, jpg_reader_cb reader, jpg_writer_cb writer, void * arg)
 {
     static uint8_t work[3100];
     JDEC decoder;
-    esp_jpg_decoder_t jpeg;
+    arduino_jpg_decoder_t jpeg;
 
     jpeg.len = len;
     jpeg.reader = reader;

@@ -13,15 +13,7 @@
 #include "ov5640.h"
 #include "ov5640_regs.h"
 #include "ov5640_settings.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
-static const char *TAG = "ov5640";
-#endif
 
 //#define REG_DEBUG_ON
 
@@ -1025,7 +1017,7 @@ static int _set_pll(sensor_t *sensor, int bypass, int multiplier, int sys_div, i
     return ret;
 }
 
-esp_err_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
+uint8_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
 static int set_xclk(sensor_t *sensor, int timer, int xclk)
 {
     int ret = 0;

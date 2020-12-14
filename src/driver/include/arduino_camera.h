@@ -1,4 +1,5 @@
 // Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020-2021 Seeed Studio
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 /*
  * Example Use
  *
@@ -41,13 +43,13 @@
         .fb_count       = 2
     };
 
-    esp_err_t camera_example_init(){
-        return esp_camera_init(&camera_example_config);
+    uint8_t camera_example_init(){
+        return arduino_camera_init(&camera_example_config);
     }
 
-    esp_err_t camera_example_capture(){
+    uint8_t camera_example_capture(){
         //capture a frame
-        camera_fb_t * fb = esp_camera_fb_get();
+        camera_fb_t * fb = arduino_camera_fb_get();
         if (!fb) {
             ESP_LOGE(TAG, "Frame buffer could not be acquired");
             return ESP_FAIL;
@@ -57,7 +59,7 @@
         display_image(fb->width, fb->height, fb->pixformat, fb->buf, fb->len);
 
         //return the frame buffer back to be reused
-        esp_camera_fb_return(fb);
+        arduino_camera_fb_return(fb);
 
         return ESP_OK;
     }
@@ -65,10 +67,8 @@
 
 #pragma once
 
-#include "esp_err.h"
-#include "driver/ledc.h"
 #include "sensor.h"
-#include "sys/time.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,11 +119,11 @@ typedef struct {
     struct timeval timestamp;   /*!< Timestamp since boot of the first DMA buffer of the frame */
 } camera_fb_t;
 
-#define ESP_ERR_CAMERA_BASE 0x20000
-#define ESP_ERR_CAMERA_NOT_DETECTED             (ESP_ERR_CAMERA_BASE + 1)
-#define ESP_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE (ESP_ERR_CAMERA_BASE + 2)
-#define ESP_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT (ESP_ERR_CAMERA_BASE + 3)
-#define ESP_ERR_CAMERA_NOT_SUPPORTED            (ESP_ERR_CAMERA_BASE + 4)
+#define ARDUINO_ERR_CAMERA_BASE 0x20000
+#define ARDUINO_ERR_CAMERA_NOT_DETECTED             (ARDUINO_ERR_CAMERA_BASE + 1)
+#define ARDUINO_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE (ARDUINO_ERR_CAMERA_BASE + 2)
+#define ARDUINO_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT (ARDUINO_ERR_CAMERA_BASE + 3)
+#define ARDUINO_ERR_CAMERA_NOT_SUPPORTED            (ARDUINO_ERR_CAMERA_BASE + 4)
 
 /**
  * @brief Initialize the camera driver
@@ -141,7 +141,7 @@ typedef struct {
  *
  * @return ESP_OK on success
  */
-esp_err_t esp_camera_init(const camera_config_t* config);
+uint8_t arduino_camera_init(const camera_config_t* config);
 
 /**
  * @brief Deinitialize the camera driver
@@ -150,42 +150,42 @@ esp_err_t esp_camera_init(const camera_config_t* config);
  *      - ESP_OK on success
  *      - ESP_ERR_INVALID_STATE if the driver hasn't been initialized yet
  */
-esp_err_t esp_camera_deinit();
+uint8_t arduino_camera_deinit();
 
 /**
  * @brief Obtain pointer to a frame buffer.
  *
  * @return pointer to the frame buffer
  */
-camera_fb_t* esp_camera_fb_get();
+camera_fb_t* arduino_camera_fb_get();
 
 /**
  * @brief Return the frame buffer to be reused again.
  *
  * @param fb    Pointer to the frame buffer
  */
-void esp_camera_fb_return(camera_fb_t * fb);
+void arduino_camera_fb_return(camera_fb_t * fb);
 
 /**
  * @brief Get a pointer to the image sensor control structure
  *
  * @return pointer to the sensor
  */
-sensor_t * esp_camera_sensor_get();
+sensor_t * arduino_camera_sensor_get();
 
 /**
  * @brief Save camera settings to non-volatile-storage (NVS)
  * 
  * @param key   A unique nvs key name for the camera settings 
  */
-esp_err_t esp_camera_save_to_nvs(const char *key);
+uint8_t arduino_camera_save_to_nvs(const char *key);
 
 /**
  * @brief Load camera settings from non-volatile-storage (NVS)
  * 
  * @param key   A unique nvs key name for the camera settings 
  */
-esp_err_t esp_camera_load_from_nvs(const char *key);
+uint8_t arduino_camera_load_from_nvs(const char *key);
 
 #ifdef __cplusplus
 }

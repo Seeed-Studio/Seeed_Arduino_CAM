@@ -13,15 +13,6 @@
 #include "sccb.h"
 #include "ov7725.h"
 #include "ov7725_regs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
-static const char* TAG = "ov7725";
-#endif
 
 
 static const uint8_t default_regs[][2] = {
@@ -493,7 +484,7 @@ static int set_gainceiling_dummy(sensor_t *sensor, gainceiling_t val){ return -1
 static int set_res_raw(sensor_t *sensor, int startX, int startY, int endX, int endY, int offsetX, int offsetY, int totalX, int totalY, int outputX, int outputY, bool scale, bool binning){return -1;}
 static int _set_pll(sensor_t *sensor, int bypass, int multiplier, int sys_div, int root_2x, int pre_div, int seld5, int pclk_manual, int pclk_div){return -1;}
 
-esp_err_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
+uint8_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
 static int set_xclk(sensor_t *sensor, int timer, int xclk)
 {
     int ret = 0;
