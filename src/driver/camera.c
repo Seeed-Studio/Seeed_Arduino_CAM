@@ -19,6 +19,7 @@
 #include "driver/include/arduino_camera.h"
 #include "driver/camera_common.h"
 #include "driver/xclk.h"
+#include "PinConfigured.h"
 #if CONFIG_OV2640_SUPPORT
 #include "ov2640.h"
 #endif
@@ -353,9 +354,56 @@ static inline void IRAM_ATTR i2s_conf_reset()
     }
 }
 
-static void i2s_gpio_init(const camera_config_t* config)
+static void hw_gpio_init(const camera_config_t* config)
 {
     // Configure input GPIOs
+    // const gpio_num_t pins[] = {
+    //     config->pin_d7,
+    //     config->pin_d6,
+    //     config->pin_d5,
+    //     config->pin_d4,
+    //     config->pin_d3,
+    //     config->pin_d2,
+    //     config->pin_d1,
+    //     config->pin_d0,
+    //     config->pin_vsync,
+    //     config->pin_href,
+    //     config->pin_pclk
+    // };
+    // gpio_config_t conf = {
+    //     .mode = GPIO_MODE_INPUT,
+    //     .pull_up_en = GPIO_PULLUP_ENABLE,
+    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    //     .intr_type = GPIO_INTR_DISABLE,
+    //     .pin_bit_mask = 0LL
+    // };
+    // for (int i = 0; i < sizeof(pins) / sizeof(gpio_num_t); ++i) {
+    //     if (rtc_gpio_is_valid_gpio(pins[i])) {
+    //         rtc_gpio_deinit(pins[i]);
+    //     }
+    //     conf.pin_bit_mask |= 1LL << pins[i];
+    // }
+    // gpio_config(&conf);
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOG_CLK_ENABLE();
+    // __HAL_RCC_GPIOA_CLK_ENABLE();
+    // __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    // __HAL_RCC_GPIOG_CLK_ENABLE();
+    // __HAL_RCC_GPIOG_CLK_ENABLE();
+    // __HAL_RCC_GPIOG_CLK_ENABLE();
+    // __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    // __HAL_RCC_GPIOE_CLK_ENABLE();
+    // __HAL_RCC_GPIOE_CLK_ENABLE();
+
+    PinName p = digitalPinToPinName(config->pin_vsync);
+    pin_function(p, STM_PIN_DATA(STM_MODE_AF_PP,GPIO_PULLUP, 13));
+
+    p = digitalPinToPinName(config->pin_pwdn);
+    pin_function(p, STM_PIN_DATA(STM_MODE_OUTPUT_PP,GPIO_NOPULL, 13));
+
     const gpio_num_t pins[] = {
         config->pin_d7,
         config->pin_d6,
@@ -364,25 +412,15 @@ static void i2s_gpio_init(const camera_config_t* config)
         config->pin_d3,
         config->pin_d2,
         config->pin_d1,
-        config->pin_d0,
-        config->pin_vsync,
+        config->pin_d0, 
         config->pin_href,
         config->pin_pclk
     };
-    gpio_config_t conf = {
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = 0LL
-    };
+
     for (int i = 0; i < sizeof(pins) / sizeof(gpio_num_t); ++i) {
-        if (rtc_gpio_is_valid_gpio(pins[i])) {
-            rtc_gpio_deinit(pins[i]);
-        }
-        conf.pin_bit_mask |= 1LL << pins[i];
+        PinName x = digitalPinToPinName(pins[i]);
+        pin_function(x, STM_PIN_DATA(STM_MODE_AF_PP, GPIO_NOPULL, 13));
     }
-    gpio_config(&conf);
 }
 
 static void i2s_init()
@@ -935,22 +973,28 @@ static void IRAM_ATTR dma_filter_rgb888_highspeed(const dma_elem_t* src, lldesc_
 uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_model)
 {
     if (s_state != NULL) {
-        return ESP_ERR_INVALID_STATE;
+        return -1;
     }
 
     s_state = (camera_state_t*) calloc(sizeof(*s_state), 1);
     if (!s_state) {
-        return ESP_ERR_NO_MEM;
+        return -1;
     }
 
-    if(config->pin_xclk >= 0) {
-      ESP_LOGD(TAG, "Enabling XCLK output");
-      camera_enable_out_clock(config);
-    }
+    // if(config->pin_xclk >= 0) {
+    // //   ESP_LOGD(TAG, "Enabling XCLK output");
+    //   camera_enable_out_clock(config);
+    // }
 
     if (config->pin_sscb_sda != -1) {
-      ESP_LOGD(TAG, "Initializing SSCB");
-      SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);
+    //   ESP_LOGD(TAG, "Initializing SSCB");
+    //   SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);
+        __HAL_RCC_I2C4_CLK_ENABLE();
+        __GPIOF_CLK_ENABLE();
+        __GPIOF_CLK_ENABLE();
+        
+        pin_function();
+
     }
 	
     if(config->pin_pwdn >= 0) {
@@ -1349,7 +1393,7 @@ fail:
 uint8_t arduino_camera_init(const camera_config_t* config)
 {
     camera_model_t camera_model = CAMERA_NONE;
-    i2s_gpio_init(config);
+    hw_gpio_init(config);
     uint8_t err = camera_probe(config, &camera_model);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Camera probe failed with error 0x%x", err);
