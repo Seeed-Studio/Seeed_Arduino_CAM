@@ -20,6 +20,9 @@
 #include "driver/camera_common.h"
 #include "driver/xclk.h"
 #include "PinConfigured.h"
+
+#include <Wire.h>
+
 #if CONFIG_OV2640_SUPPORT
 #include "ov2640.h"
 #endif
@@ -988,13 +991,12 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
 
     if (config->pin_sscb_sda != -1) {
     //   ESP_LOGD(TAG, "Initializing SSCB");
-    //   SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);
-        __HAL_RCC_I2C4_CLK_ENABLE();
-        __GPIOF_CLK_ENABLE();
-        __GPIOF_CLK_ENABLE();
-        
-        pin_function();
-
+      SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl)
+      {
+          Wire.setSCL(config->pin_sscb_scl);
+          Wire.setSDA(config->pin_sscb_sda);
+          Wire.begin();
+      }
     }
 	
     if(config->pin_pwdn >= 0) {
