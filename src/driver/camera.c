@@ -42,6 +42,8 @@
 #include "ov7670.h"
 #endif
 
+DCMI_HandleTypeDef DCMI_Handle;
+
 typedef enum {
     CAMERA_NONE = 0,
     CAMERA_UNKNOWN = 1,
@@ -424,6 +426,34 @@ static void hw_gpio_init(const camera_config_t* config)
         PinName x = digitalPinToPinName(pins[i]);
         pin_function(x, STM_PIN_DATA(STM_MODE_AF_PP, GPIO_NOPULL, 13));
     }
+}
+
+
+static void dcmi_init()
+{
+    __HAL_RCC_DCMI_CLK_ENABLE();
+
+
+	DCMI_Handle.Instance              = DCMI;    
+
+	DCMI_Handle.Init.SynchroMode      = DCMI_MODE_CONTINUOUS;
+
+	DCMI_Handle.Init.SynchroMode      = DCMI_SYNCHRO_HARDWARE;
+
+	DCMI_Handle.Init.PCKPolarity      = DCMI_PCKPOLARITY_RISING;
+
+	DCMI_Handle.Init.VSPolarity       = DCMI_VSPOLARITY_LOW;
+
+	DCMI_Handle.Init.HSPolarity       = DCMI_HSPOLARITY_LOW;
+
+	DCMI_Handle.Init.CaptureRate      = DCMI_CR_ALL_FRAME;
+
+	DCMI_Handle.Init.ExtendedDataMode = DCMI_EXTEND_DATA_8B;
+	HAL_DCMI_Init(&DCMI_Handle);
+
+	HAL_NVIC_SetPriority(DCMI_IRQn, 0 ,5);
+	HAL_NVIC_EnableIRQ(DCMI_IRQn);
+
 }
 
 static void i2s_init()
@@ -1150,10 +1180,10 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
 uint8_t camera_init(const camera_config_t* config)
 {
     if (!s_state) {
-        return ESP_ERR_INVALID_STATE;
+        return -2;
     }
     if (s_state->sensor.id.PID == 0) {
-        return ESP_ERR_CAMERA_NOT_SUPPORTED;
+        return -3;
     }
     memcpy(&s_state->config, config, sizeof(*config));
     uint8_t err = ESP_OK;
@@ -1294,7 +1324,7 @@ uint8_t camera_init(const camera_config_t* config)
              s_state->fb_size, s_state->sampling_mode,
              s_state->width, s_state->height);
 
-    i2s_init();
+    dcmi_init();
 
     err = dma_desc_init();
     if (err != ESP_OK) {
