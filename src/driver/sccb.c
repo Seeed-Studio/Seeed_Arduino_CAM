@@ -10,29 +10,48 @@
 
 int SCCB_Init(int pin_sda, int pin_scl)
 {
+    Wire.setSCL(config->pin_sscb_scl);
+    Wire.setSDA(config->pin_sscb_sda);
+    Wire.begin();
     return 0;
 }
 
 uint8_t SCCB_Probe()
 {
-    return 0;
+
+    return 0x60;
 }
 
 uint8_t SCCB_Read(uint8_t slv_addr, uint8_t reg)
 {
     uint8_t data=0;
-
-    return data;
+    Wire.beginTransmission(slv_addr);
+    Wire.write(0xff);
+    Wire.write(0x01); 
+    Wire.write(reg);
+    Wire.endTransmission();
+    while (Wire.available())
+    {
+        data = Wire.read();
+        return data;
+    }
+    
 }
 
 uint8_t SCCB_Write(uint8_t slv_addr, uint8_t reg, uint8_t data)
 {
-
+    Wire.beginTransmission(slv_addr);
+    Wire.write(0xff);
+    Wire.write(0x01);
+    Wire.write(reg);
+    Wire.write(data);
+    Wire.endTransmission();
     return 0;
 }
 
 uint8_t SCCB_Read16(uint8_t slv_addr, uint16_t reg)
 {
+
     return 0;
 }
 
