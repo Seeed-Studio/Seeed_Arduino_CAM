@@ -1297,7 +1297,7 @@ uint8_t camera_probe(const camera_config_t *config, camera_model_t *out_camera_m
         *out_camera_model = CAMERA_UNKNOWN;
         camera_disable_out_clock();
         printf(TAG, "Detected camera not supported.");
-        return ESP_ERR_CAMERA_NOT_SUPPORTED;
+        return -1;
     }
 
     printf(TAG, "Doing SW reset of sensor");
@@ -1372,7 +1372,7 @@ uint8_t camera_init(const camera_config_t *config)
         break;
 #endif
     default:
-        return ESP_ERR_CAMERA_NOT_SUPPORTED;
+        return -1;
     }
 
     s_state->width = resolution[frame_size].width;
@@ -1589,6 +1589,15 @@ uint8_t camera_init(const camera_config_t *config)
         HAL_DCMI_IRQHandler(&DCMI_Handle);
     }
 
+    void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef * hdcmi)
+    {
+        bool need_yield = false;
+        signal_dma_buf_received(&need_yield);
+        if (need_yield) {
+        portYIELD_FROM_ISR();
+        }
+    }
+
     s_state->sensor.status.framesize = frame_size;
     s_state->sensor.pixformat = pix_format;
     printf(TAG, "Setting frame size to %dx%d", s_state->width, s_state->height);
@@ -1608,11 +1617,11 @@ uint8_t camera_init(const camera_config_t *config)
         s_state->sensor.set_lenc(&s_state->sensor, true);
     }
 
-    if (skip_frame())
-    {
-        err = ESP_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT;
-        goto fail;
-    }
+    // if (skip_frame())
+    // {
+    //     err = ESP_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT;
+    //     goto fail;
+    // }
     //todo: for some reason the first set of the quality does not work.
     if (pix_format == PIXFORMAT_JPEG)
     {
@@ -1740,23 +1749,12 @@ camera_fb_t *arduino_camera_fb_get()
     {
         return NULL;
     }
-    if (!I2S0.conf.rx_start)
-    {
-        if (s_state->config.fb_count > 1)
-        {
-            printf(TAG, "i2s_run");
-        }
-        if (i2s_run() != 0)
-        {
-            return NULL;
-        }
-    }
+
     bool need_yield = false;
     if (s_state->config.fb_count == 1)
     {
         if (xSemaphoreTake(s_state->frame_ready, FB_GET_TIMEOUT) != pdTRUE)
         {
-            i2s_stop(&need_yield);
             printf(TAG, "Failed to get the frame on time!");
             return NULL;
         }
@@ -1767,7 +1765,6 @@ camera_fb_t *arduino_camera_fb_get()
     {
         if (xQueueReceive(s_state->fb_out, &fb, FB_GET_TIMEOUT) != pdTRUE)
         {
-            i2s_stop(&need_yield);
             printf(TAG, "Failed to get the frame on time!");
             return NULL;
         }
