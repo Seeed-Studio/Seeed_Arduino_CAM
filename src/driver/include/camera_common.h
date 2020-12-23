@@ -3,15 +3,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "esp_err.h"
-#include "esp_intr_alloc.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
-#include "arduino_camera.h"
-#include "sensor.h"
-
-#include "esp_system.h"
+#include <STM32FreeRTOS.h>
+#include "driver/include/arduino_camera.h"
+#include "driver/include/sensor.h"
 #if ESP_IDF_VERSION_MAJOR >= 4 // IDF 4+
 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
 #include "esp32/rom/lldesc.h"
@@ -19,7 +13,7 @@
 #error Target CONFIG_IDF_TARGET is not supported
 #endif
 #else // ESP32 Before IDF 4.0
-#include "rom/lldesc.h"
+// #include "rom/lldesc.h"
 #endif
 
 typedef union {

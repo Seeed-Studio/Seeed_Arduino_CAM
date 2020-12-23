@@ -11,9 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "arduino_jpg_decode.h"
+#include "conversions/include/arduino_jpg_decode.h"
 
-#include "arduino_system.h"
+// #include "arduino_system.h"
 #if ESP_IDF_VERSION_MAJOR >= 4 // IDF 4+
 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
 #include "esp32/rom/tjpgd.h"
@@ -21,14 +21,13 @@
 #error Target CONFIG_IDF_TARGET is not supported
 #endif
 #else // ESP32 Before IDF 4.0
-#include "rom/tjpgd.h"
+//#include "rom/tjpgd.h"
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
 #define TAG ""
 #else
-#include "esp32_log.h"
 static const char* TAG = "arduino_jpg_decode";
 #endif
 

@@ -9,10 +9,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sccb.h"
-#include "ov5640.h"
-#include "ov5640_regs.h"
-#include "ov5640_settings.h"
+#include "driver/include/sccb.h"
+#include "sensors/include/ov5640.h"
+#include "sensors/include/ov5640_regs.h"
+#include "sensors/include/ov5640_settings.h"
 
 
 //#define REG_DEBUG_ON

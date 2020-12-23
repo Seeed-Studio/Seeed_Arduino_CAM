@@ -9,9 +9,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sccb.h"
-#include "ov7670.h"
-#include "ov7670_regs.h"
+#include "driver/include/sccb.h"
+#include "sensors/include/ov7670.h"
+#include "sensors/include/ov7670_regs.h"
 #include <stdio.h>
 
 static int ov7670_clkrc = 0x01;

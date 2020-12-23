@@ -93,14 +93,14 @@ static camera_config_t camera_config = {
 static int8_t init_camera()
 {
     //initialize the camera
-    esp_err_t err = arduino_camera_init(&camera_config);
-    if (err != ESP_OK)
+    uint8_t err = arduino_camera_init(&camera_config);
+    if (err != 0)
     {
-        ESP_LOGE(TAG, "Camera Init Failed");
+        printf(TAG, "Camera Init Failed");
         return err;
     }
 
-    return ESP_OK;
+    return 0;
 }
 
 void setup()
@@ -109,9 +109,8 @@ void setup()
 }
 
 void loop() {
-        ESP_LOGI(TAG, "Taking picture...");
-        camera_fb_t *pic = esp_camera_fb_get();
+        camera_fb_t *pic = arduino_camera_fb_get();
         // use pic->buf to access the image
-        ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
+        // ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
         vTaskDelay(5000 / portTICK_RATE_MS); 
 }
