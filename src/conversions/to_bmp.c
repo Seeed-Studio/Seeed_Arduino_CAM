@@ -61,10 +61,10 @@ typedef struct {
         uint8_t *output;
 } rgb_jpg_decoder;
 
-static void *_malloc(size_t size)
-{
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-}
+// static void *_malloc(size_t size)
+// {
+//     return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+// }
 
 //output buffer and image width
 static bool _rgb_write(void * arg, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data)
@@ -129,7 +129,7 @@ static bool jpg2rgb888(const uint8_t *src, size_t src_len, uint8_t * out, jpg_sc
     jpeg.output = out;
     jpeg.data_offset = 0;
 
-    if(esp_jpg_decode(src_len, scale, _jpg_read, _rgb_write, (void*)&jpeg) != ESP_OK){
+    if(esp_jpg_decode(src_len, scale, _jpg_read, _rgb_write, (void*)&jpeg) != 0){
         return false;
     }
     return true;
@@ -145,7 +145,7 @@ bool jpg2bmp(const uint8_t *src, size_t src_len, uint8_t ** out, size_t * out_le
     jpeg.output = NULL;
     jpeg.data_offset = BMP_HEADER_LEN;
 
-    if(esp_jpg_decode(src_len, JPG_SCALE_NONE, _jpg_read, _rgb_write, (void*)&jpeg) != ESP_OK){
+    if(esp_jpg_decode(src_len, JPG_SCALE_NONE, _jpg_read, _rgb_write, (void*)&jpeg) != 0){
         return false;
     }
 
@@ -241,7 +241,7 @@ bool fmt2bmp(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixf
     size_t out_size = (pix_count * 3) + BMP_HEADER_LEN;
     uint8_t * out_buf = (uint8_t *)_malloc(out_size);
     if(!out_buf) {
-        ESP_LOGE(TAG, "_malloc failed! %u", out_size);
+        // ESP_LOGE(TAG, "_malloc failed! %u", out_size);
         return false;
     }
 
