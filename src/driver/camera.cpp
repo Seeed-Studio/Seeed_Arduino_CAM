@@ -215,7 +215,7 @@ static int skip_frame()
     return 0;
 
 timeout:
-    printf(TAG, "Timeout waiting for VSYNC");
+    // printf(TAG, "Timeout waiting for VSYNC");
     return -1;
 }
 
@@ -244,7 +244,7 @@ static uint8_t camera_fb_init(size_t count)
 
     camera_fb_deinit();
 
-    printf(TAG, "Allocating %u frame buffers (%d KB total)", count, (s_state->fb_size * count) / 1024);
+    // printf(TAG, "Allocating %u frame buffers (%d KB total)", count, (s_state->fb_size * count) / 1024);
 
     camera_fb_int_t *_fb = NULL, *_fb1 = NULL, *_fb2 = NULL;
     for (size_t i = 0; i < count; i++)
@@ -500,153 +500,153 @@ static void dcmi_init()
     HAL_NVIC_EnableIRQ(DCMI_IRQn);
 }
 
-static void i2s_init()
-{
-    camera_config_t *config = &s_state->config;
+// static void i2s_init()
+// {
+//     camera_config_t *config = &s_state->config;
 
-    // Route input GPIOs to I2S peripheral using GPIO matrix
-    gpio_matrix_in(config->pin_d0, I2S0I_DATA_IN0_IDX, false);
-    gpio_matrix_in(config->pin_d1, I2S0I_DATA_IN1_IDX, false);
-    gpio_matrix_in(config->pin_d2, I2S0I_DATA_IN2_IDX, false);
-    gpio_matrix_in(config->pin_d3, I2S0I_DATA_IN3_IDX, false);
-    gpio_matrix_in(config->pin_d4, I2S0I_DATA_IN4_IDX, false);
-    gpio_matrix_in(config->pin_d5, I2S0I_DATA_IN5_IDX, false);
-    gpio_matrix_in(config->pin_d6, I2S0I_DATA_IN6_IDX, false);
-    gpio_matrix_in(config->pin_d7, I2S0I_DATA_IN7_IDX, false);
-    gpio_matrix_in(config->pin_vsync, I2S0I_V_SYNC_IDX, false);
-    gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);
-    gpio_matrix_in(config->pin_href, I2S0I_H_ENABLE_IDX, false);
-    gpio_matrix_in(config->pin_pclk, I2S0I_WS_IN_IDX, false);
+//     // Route input GPIOs to I2S peripheral using GPIO matrix
+//     gpio_matrix_in(config->pin_d0, I2S0I_DATA_IN0_IDX, false);
+//     gpio_matrix_in(config->pin_d1, I2S0I_DATA_IN1_IDX, false);
+//     gpio_matrix_in(config->pin_d2, I2S0I_DATA_IN2_IDX, false);
+//     gpio_matrix_in(config->pin_d3, I2S0I_DATA_IN3_IDX, false);
+//     gpio_matrix_in(config->pin_d4, I2S0I_DATA_IN4_IDX, false);
+//     gpio_matrix_in(config->pin_d5, I2S0I_DATA_IN5_IDX, false);
+//     gpio_matrix_in(config->pin_d6, I2S0I_DATA_IN6_IDX, false);
+//     gpio_matrix_in(config->pin_d7, I2S0I_DATA_IN7_IDX, false);
+//     gpio_matrix_in(config->pin_vsync, I2S0I_V_SYNC_IDX, false);
+//     gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);
+//     gpio_matrix_in(config->pin_href, I2S0I_H_ENABLE_IDX, false);
+//     gpio_matrix_in(config->pin_pclk, I2S0I_WS_IN_IDX, false);
 
-    // Enable and configure I2S peripheral
-    periph_module_enable(PERIPH_I2S0_MODULE);
-    // Toggle some reset bits in LC_CONF register
-    // Toggle some reset bits in CONF register
-    i2s_conf_reset();
-    // Enable slave mode (sampling clock is external)
-    I2S0.conf.rx_slave_mod = 1;
-    // Enable parallel mode
-    I2S0.conf2.lcd_en = 1;
-    // Use HSYNC/VSYNC/HREF to control sampling
-    I2S0.conf2.camera_en = 1;
-    // Configure clock divider
-    I2S0.clkm_conf.clkm_div_a = 1;
-    I2S0.clkm_conf.clkm_div_b = 0;
-    I2S0.clkm_conf.clkm_div_num = 2;
-    // FIFO will sink data to DMA
-    I2S0.fifo_conf.dscr_en = 1;
-    // FIFO configuration
-    I2S0.fifo_conf.rx_fifo_mod = s_state->sampling_mode;
-    I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
-    I2S0.conf_chan.rx_chan_mod = 1;
-    // Clear flags which are used in I2S serial mode
-    I2S0.sample_rate_conf.rx_bits_mod = 0;
-    I2S0.conf.rx_right_first = 0;
-    I2S0.conf.rx_msb_right = 0;
-    I2S0.conf.rx_msb_shift = 0;
-    I2S0.conf.rx_mono = 0;
-    I2S0.conf.rx_short_sync = 0;
-    I2S0.timing.val = 0;
-    I2S0.timing.rx_dsync_sw = 1;
+//     // Enable and configure I2S peripheral
+//     periph_module_enable(PERIPH_I2S0_MODULE);
+//     // Toggle some reset bits in LC_CONF register
+//     // Toggle some reset bits in CONF register
+//     i2s_conf_reset();
+//     // Enable slave mode (sampling clock is external)
+//     I2S0.conf.rx_slave_mod = 1;
+//     // Enable parallel mode
+//     I2S0.conf2.lcd_en = 1;
+//     // Use HSYNC/VSYNC/HREF to control sampling
+//     I2S0.conf2.camera_en = 1;
+//     // Configure clock divider
+//     I2S0.clkm_conf.clkm_div_a = 1;
+//     I2S0.clkm_conf.clkm_div_b = 0;
+//     I2S0.clkm_conf.clkm_div_num = 2;
+//     // FIFO will sink data to DMA
+//     I2S0.fifo_conf.dscr_en = 1;
+//     // FIFO configuration
+//     I2S0.fifo_conf.rx_fifo_mod = s_state->sampling_mode;
+//     I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
+//     I2S0.conf_chan.rx_chan_mod = 1;
+//     // Clear flags which are used in I2S serial mode
+//     I2S0.sample_rate_conf.rx_bits_mod = 0;
+//     I2S0.conf.rx_right_first = 0;
+//     I2S0.conf.rx_msb_right = 0;
+//     I2S0.conf.rx_msb_shift = 0;
+//     I2S0.conf.rx_mono = 0;
+//     I2S0.conf.rx_short_sync = 0;
+//     I2S0.timing.val = 0;
+//     I2S0.timing.rx_dsync_sw = 1;
 
-    // Allocate I2S interrupt, keep it disabled
-    ESP_ERROR_CHECK(esp_intr_alloc(ETS_I2S0_INTR_SOURCE,
-                                   ESP_INTR_FLAG_INTRDISABLED | ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM,
-                                   &i2s_isr, NULL, &s_state->i2s_intr_handle));
-}
+//     // Allocate I2S interrupt, keep it disabled
+//     ESP_ERROR_CHECK(esp_intr_alloc(ETS_I2S0_INTR_SOURCE,
+//                                    ESP_INTR_FLAG_INTRDISABLED | ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM,
+//                                    &i2s_isr, NULL, &s_state->i2s_intr_handle));
+// }
 
-static void IRAM_ATTR i2s_start_bus()
-{
-    s_state->dma_desc_cur = 0;
-    s_state->dma_received_count = 0;
-    //s_state->dma_filtered_count = 0;
-    esp_intr_disable(s_state->i2s_intr_handle);
-    i2s_conf_reset();
+// static void IRAM_ATTR i2s_start_bus()
+// {
+//     s_state->dma_desc_cur = 0;
+//     s_state->dma_received_count = 0;
+//     //s_state->dma_filtered_count = 0;
+//     esp_intr_disable(s_state->i2s_intr_handle);
+//     i2s_conf_reset();
 
-    I2S0.rx_eof_num = s_state->dma_sample_count;
-    I2S0.in_link.addr = (uint32_t)&s_state->dma_desc[0];
-    I2S0.in_link.start = 1;
-    I2S0.int_clr.val = I2S0.int_raw.val;
-    I2S0.int_ena.val = 0;
-    I2S0.int_ena.in_done = 1;
+//     I2S0.rx_eof_num = s_state->dma_sample_count;
+//     I2S0.in_link.addr = (uint32_t)&s_state->dma_desc[0];
+//     I2S0.in_link.start = 1;
+//     I2S0.int_clr.val = I2S0.int_raw.val;
+//     I2S0.int_ena.val = 0;
+//     I2S0.int_ena.in_done = 1;
 
-    esp_intr_enable(s_state->i2s_intr_handle);
-    I2S0.conf.rx_start = 1;
-    if (s_state->config.pixel_format == PIXFORMAT_JPEG)
-    {
-        vsync_intr_enable();
-    }
-}
+//     esp_intr_enable(s_state->i2s_intr_handle);
+//     I2S0.conf.rx_start = 1;
+//     if (s_state->config.pixel_format == PIXFORMAT_JPEG)
+//     {
+//         vsync_intr_enable();
+//     }
+// }
 
-static int i2s_run()
-{
-    for (int i = 0; i < s_state->dma_desc_count; ++i)
-    {
-        lldesc_t *d = &s_state->dma_desc[i];
-        ESP_LOGV(TAG, "DMA desc %2d: %u %u %u %u %u %u %p %p",
-                 i, d->length, d->size, d->offset, d->eof, d->sosf, d->owner, d->buf, d->qe.stqe_next);
-        memset(s_state->dma_buf[i], 0, d->length);
-    }
+// static int i2s_run()
+// {
+//     for (int i = 0; i < s_state->dma_desc_count; ++i)
+//     {
+//         lldesc_t *d = &s_state->dma_desc[i];
+//         // ESP_LOGV(TAG, "DMA desc %2d: %u %u %u %u %u %u %p %p",
+//                 //  i, d->length, d->size, d->offset, d->eof, d->sosf, d->owner, d->buf, d->qe.stqe_next);
+//         memset(s_state->dma_buf[i], 0, d->length);
+//     }
 
-    // wait for frame
-    camera_fb_int_t *fb = s_state->fb;
-    while (s_state->config.fb_count > 1)
-    {
-        while (s_state->fb->ref && s_state->fb->next != fb)
-        {
-            s_state->fb = s_state->fb->next;
-        }
-        if (s_state->fb->ref == 0)
-        {
-            break;
-        }
-        vTaskDelay(2);
-    }
+//     // wait for frame
+//     camera_fb_int_t *fb = s_state->fb;
+//     while (s_state->config.fb_count > 1)
+//     {
+//         while (s_state->fb->ref && s_state->fb->next != fb)
+//         {
+//             s_state->fb = s_state->fb->next;
+//         }
+//         if (s_state->fb->ref == 0)
+//         {
+//             break;
+//         }
+//         vTaskDelay(2);
+//     }
 
-    //todo: wait for vsync
-    ESP_LOGV(TAG, "Waiting for negative edge on VSYNC");
+//     //todo: wait for vsync
+//     ESP_LOGV(TAG, "Waiting for negative edge on VSYNC");
 
-    int64_t st_t = esp_timer_get_time();
-    while (_gpio_get_level(s_state->config.pin_vsync) != 0)
-    {
-        if ((esp_timer_get_time() - st_t) > 1000000LL)
-        {
-            printf(TAG, "Timeout waiting for VSYNC");
-            return -1;
-        }
-    }
-    ESP_LOGV(TAG, "Got VSYNC");
-    i2s_start_bus();
-    return 0;
-}
+//     int64_t st_t = esp_timer_get_time();
+//     while (_gpio_get_level(s_state->config.pin_vsync) != 0)
+//     {
+//         if ((esp_timer_get_time() - st_t) > 1000000LL)
+//         {
+//             // printf(TAG, "Timeout waiting for VSYNC");
+//             return -1;
+//         }
+//     }
+//     ESP_LOGV(TAG, "Got VSYNC");
+//     i2s_start_bus();
+//     return 0;
+// }
 
-static void IRAM_ATTR i2s_stop_bus()
-{
-    esp_intr_disable(s_state->i2s_intr_handle);
-    vsync_intr_disable();
-    i2s_conf_reset();
-    I2S0.conf.rx_start = 0;
-}
+// static void IRAM_ATTR i2s_stop_bus()
+// {
+//     esp_intr_disable(s_state->i2s_intr_handle);
+//     vsync_intr_disable();
+//     i2s_conf_reset();
+//     I2S0.conf.rx_start = 0;
+// }
 
-static void IRAM_ATTR i2s_stop(bool *need_yield)
-{
-    if (s_state->config.fb_count == 1 && !s_state->fb->bad)
-    {
-        i2s_stop_bus();
-    }
-    else
-    {
-        s_state->dma_received_count = 0;
-    }
+// static void IRAM_ATTR i2s_stop(bool *need_yield)
+// {
+//     if (s_state->config.fb_count == 1 && !s_state->fb->bad)
+//     {
+//         i2s_stop_bus();
+//     }
+//     else
+//     {
+//         s_state->dma_received_count = 0;
+//     }
 
-    size_t val = SIZE_MAX;
-    BaseType_t higher_priority_task_woken;
-    BaseType_t ret = xQueueSendFromISR(s_state->data_ready, &val, &higher_priority_task_woken);
-    if (need_yield && !*need_yield)
-    {
-        *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
-    }
-}
+//     size_t val = SIZE_MAX;
+//     BaseType_t higher_priority_task_woken;
+//     BaseType_t ret = xQueueSendFromISR(s_state->data_ready, &val, &higher_priority_task_woken);
+//     if (need_yield && !*need_yield)
+//     {
+//         *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
+//     }
+// }
 
 static void IRAM_ATTR signal_dma_buf_received(bool *need_yield)
 {
@@ -673,58 +673,58 @@ static void IRAM_ATTR signal_dma_buf_received(bool *need_yield)
     *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
 }
 
-static void IRAM_ATTR i2s_isr(void *arg)
-{
-    I2S0.int_clr.val = I2S0.int_raw.val;
-    bool need_yield = false;
-    signal_dma_buf_received(&need_yield);
-    if (s_state->config.pixel_format != PIXFORMAT_JPEG && s_state->dma_received_count == s_state->height * s_state->dma_per_line)
-    {
-        i2s_stop(&need_yield);
-    }
-    if (need_yield)
-    {
-        portYIELD_FROM_ISR();
-    }
-}
+// static void IRAM_ATTR i2s_isr(void *arg)
+// {
+//     I2S0.int_clr.val = I2S0.int_raw.val;
+//     bool need_yield = false;
+//     signal_dma_buf_received(&need_yield);
+//     if (s_state->config.pixel_format != PIXFORMAT_JPEG && s_state->dma_received_count == s_state->height * s_state->dma_per_line)
+//     {
+//         i2s_stop(&need_yield);
+//     }
+//     if (need_yield)
+//     {
+//         portYIELD_FROM_ISR();
+//     }
+// }
 
-static void IRAM_ATTR vsync_isr(void *arg)
-{
-    GPIO.status1_w1tc.val = GPIO.status1.val;
-    GPIO.status_w1tc = GPIO.status;
-    bool need_yield = false;
-    //if vsync is low and we have received some data, frame is done
-    if (_gpio_get_level(s_state->config.pin_vsync) == 0)
-    {
-        if (s_state->dma_received_count > 0)
-        {
-            signal_dma_buf_received(&need_yield);
-            //ets_printf("end_vsync\n");
-            if (s_state->dma_filtered_count > 1 || s_state->fb->bad || s_state->config.fb_count > 1)
-            {
-                i2s_stop(&need_yield);
-            }
-            //ets_printf("vs\n");
-        }
-        if (s_state->config.fb_count > 1 || s_state->dma_filtered_count < 2)
-        {
-            I2S0.conf.rx_start = 0;
-            I2S0.in_link.start = 0;
-            I2S0.int_clr.val = I2S0.int_raw.val;
-            i2s_conf_reset();
-            s_state->dma_desc_cur = (s_state->dma_desc_cur + 1) % s_state->dma_desc_count;
-            //I2S0.rx_eof_num = s_state->dma_sample_count;
-            I2S0.in_link.addr = (uint32_t)&s_state->dma_desc[s_state->dma_desc_cur];
-            I2S0.in_link.start = 1;
-            I2S0.conf.rx_start = 1;
-            s_state->dma_received_count = 0;
-        }
-    }
-    if (need_yield)
-    {
-        portYIELD_FROM_ISR();
-    }
-}
+// static void IRAM_ATTR vsync_isr(void *arg)
+// {
+//     GPIO.status1_w1tc.val = GPIO.status1.val;
+//     GPIO.status_w1tc = GPIO.status;
+//     bool need_yield = false;
+//     //if vsync is low and we have received some data, frame is done
+//     if (_gpio_get_level(s_state->config.pin_vsync) == 0)
+//     {
+//         if (s_state->dma_received_count > 0)
+//         {
+//             signal_dma_buf_received(&need_yield);
+//             //ets_printf("end_vsync\n");
+//             if (s_state->dma_filtered_count > 1 || s_state->fb->bad || s_state->config.fb_count > 1)
+//             {
+//                 i2s_stop(&need_yield);
+//             }
+//             //ets_printf("vs\n");
+//         }
+//         if (s_state->config.fb_count > 1 || s_state->dma_filtered_count < 2)
+//         {
+//             I2S0.conf.rx_start = 0;
+//             I2S0.in_link.start = 0;
+//             I2S0.int_clr.val = I2S0.int_raw.val;
+//             i2s_conf_reset();
+//             s_state->dma_desc_cur = (s_state->dma_desc_cur + 1) % s_state->dma_desc_count;
+//             //I2S0.rx_eof_num = s_state->dma_sample_count;
+//             I2S0.in_link.addr = (uint32_t)&s_state->dma_desc[s_state->dma_desc_cur];
+//             I2S0.in_link.start = 1;
+//             I2S0.conf.rx_start = 1;
+//             s_state->dma_received_count = 0;
+//         }
+//     }
+//     if (need_yield)
+//     {
+//         portYIELD_FROM_ISR();
+//     }
+// }
 
 static void IRAM_ATTR camera_fb_done()
 {
@@ -899,7 +899,7 @@ static void IRAM_ATTR dma_filter_buffer(size_t buf_idx)
             uint32_t sig = *((uint32_t *)s_state->fb->buf) & 0xFFFFFF;
             if (sig != 0xffd8ff)
             {
-                ets_printf("bh 0x%08x\n", sig);
+                // ets_printf("bh 0x%08x\n", sig);
                 s_state->fb->bad = 1;
                 return;
             }
@@ -1211,7 +1211,7 @@ uint8_t camera_probe(const camera_config_t *config, camera_model_t *out_camera_m
 #if CONFIG_NT99141_SUPPORT
     if (slv_addr == 0x2a)
     {
-        printf(TAG, "Resetting NT99141");
+        // printf(TAG, "Resetting NT99141");
         SCCB_Write16(0x2a, 0x3008, 0x01); //bank sensor
     }
 #endif
@@ -1225,17 +1225,17 @@ uint8_t camera_probe(const camera_config_t *config, camera_model_t *out_camera_m
         id->PID = SCCB_Read16(s_state->sensor.slv_addr, REG16_CHIDH);
         id->VER = SCCB_Read16(s_state->sensor.slv_addr, REG16_CHIDL);
         vTaskDelay(10 / portTICK_PERIOD_MS);
-        printf(TAG, "Camera PID=0x%02x VER=0x%02x", id->PID, id->VER);
+        // printf(TAG, "Camera PID=0x%02x VER=0x%02x", id->PID, id->VER);
     }
     else if (s_state->sensor.slv_addr == 0x2a)
     {
         id->PID = SCCB_Read16(s_state->sensor.slv_addr, 0x3000);
         id->VER = SCCB_Read16(s_state->sensor.slv_addr, 0x3001);
         vTaskDelay(10 / portTICK_PERIOD_MS);
-        printf(TAG, "Camera PID=0x%02x VER=0x%02x", id->PID, id->VER);
+        // printf(TAG, "Camera PID=0x%02x VER=0x%02x", id->PID, id->VER);
         if (config->xclk_freq_hz > 10000000)
         {
-            printf(TAG, "NT99141: only XCLK under 10MHz is supported, and XCLK is now set to 10M");
+            // printf(TAG, "NT99141: only XCLK under 10MHz is supported, and XCLK is now set to 10M");
             s_state->sensor.xclk_freq_hz = 10000000;
         }
     }
@@ -1247,7 +1247,7 @@ uint8_t camera_probe(const camera_config_t *config, camera_model_t *out_camera_m
         id->MIDL = SCCB_Read(s_state->sensor.slv_addr, REG_MIDL);
         id->MIDH = SCCB_Read(s_state->sensor.slv_addr, REG_MIDH);
         vTaskDelay(10 / portTICK_PERIOD_MS);
-        printf(TAG, "Camera PID=0x%02x VER=0x%02x MIDL=0x%02x MIDH=0x%02x",
+        // printf(TAG, "Camera PID=0x%02x VER=0x%02x MIDL=0x%02x MIDH=0x%02x",
                id->PID, id->VER, id->MIDH, id->MIDL);
 
 #if (CONFIG_OV3660_SUPPORT || CONFIG_OV5640_SUPPORT || CONFIG_NT99141_SUPPORT)
@@ -1296,11 +1296,11 @@ uint8_t camera_probe(const camera_config_t *config, camera_model_t *out_camera_m
         id->PID = 0;
         *out_camera_model = CAMERA_UNKNOWN;
         camera_disable_out_clock();
-        printf(TAG, "Detected camera not supported.");
+        // printf(TAG, "Detected camera not supported.");
         return -1;
     }
 
-    printf(TAG, "Doing SW reset of sensor");
+    // printf(TAG, "Doing SW reset of sensor");
     s_state->sensor.reset(&s_state->sensor);
 
     return 0;
@@ -1488,12 +1488,12 @@ uint8_t camera_init(const camera_config_t *config)
     }
     else
     {
-        printf(TAG, "Requested format is not supported");
+        // printf(TAG, "Requested format is not supported");
         err = -1;
         goto fail;
     }
 
-    printf(TAG, "in_bpp: %d, fb_bpp: %d, fb_size: %d, mode: %d, width: %d height: %d",
+    // printf(TAG, "in_bpp: %d, fb_bpp: %d, fb_size: %d, mode: %d, width: %d height: %d",
            s_state->in_bytes_per_pixel, s_state->fb_bytes_per_pixel,
            s_state->fb_size, s_state->sampling_mode,
            s_state->width, s_state->height);
@@ -1503,7 +1503,7 @@ uint8_t camera_init(const camera_config_t *config)
     err = dma_desc_init();
     if (err != 0)
     {
-        printf(TAG, "Failed to initialize I2S and DMA");
+        // printf(TAG, "Failed to initialize I2S and DMA");
         goto fail;
     }
 
@@ -1511,14 +1511,14 @@ uint8_t camera_init(const camera_config_t *config)
     err = camera_fb_init(s_state->config.fb_count);
     if (err != 0)
     {
-        printf(TAG, "Failed to allocate frame buffer");
+        // printf(TAG, "Failed to allocate frame buffer");
         goto fail;
     }
 
     s_state->data_ready = xQueueCreate(16, sizeof(size_t));
     if (s_state->data_ready == NULL)
     {
-        printf(TAG, "Failed to dma queue");
+        // printf(TAG, "Failed to dma queue");
         err = -1 goto fail;
     }
 
@@ -1527,7 +1527,7 @@ uint8_t camera_init(const camera_config_t *config)
         s_state->frame_ready = xSemaphoreCreateBinary();
         if (s_state->frame_ready == NULL)
         {
-            printf(TAG, "Failed to create semaphore");
+            // printf(TAG, "Failed to create semaphore");
             err = -1;
             goto fail;
         }
@@ -1538,7 +1538,7 @@ uint8_t camera_init(const camera_config_t *config)
         s_state->fb_out = xQueueCreate(1, sizeof(camera_fb_t *));
         if (s_state->fb_in == NULL || s_state->fb_out == NULL)
         {
-            printf(TAG, "Failed to fb queues");
+            // printf(TAG, "Failed to fb queues");
             err = -1;
             goto fail;
         }
@@ -1553,7 +1553,7 @@ uint8_t camera_init(const camera_config_t *config)
     if (!xTaskCreate(&dma_filter_task, "dma_filter", 4096, NULL, 10, &s_state->dma_filter_task))
 #endif
     {
-        printf(TAG, "Failed to create DMA filter task");
+        // printf(TAG, "Failed to create DMA filter task");
         err = ESP_ERR_NO_MEM;
         goto fail;
     }
@@ -1600,10 +1600,10 @@ uint8_t camera_init(const camera_config_t *config)
 
     s_state->sensor.status.framesize = frame_size;
     s_state->sensor.pixformat = pix_format;
-    printf(TAG, "Setting frame size to %dx%d", s_state->width, s_state->height);
+    // printf(TAG, "Setting frame size to %dx%d", s_state->width, s_state->height);
     if (s_state->sensor.set_framesize(&s_state->sensor, frame_size) != 0)
     {
-        printf(TAG, "Failed to set frame size");
+        // printf(TAG, "Failed to set frame size");
         err = ESP_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE;
         goto fail;
     }
@@ -1642,49 +1642,49 @@ uint8_t arduino_camera_init(const camera_config_t *config)
     uint8_t err = camera_probe(config, &camera_model);
     if (err != 0)
     {
-        printf(TAG, "Camera probe failed with error 0x%x", err);
+        // printf(TAG, "Camera probe failed with error 0x%x", err);
         goto fail;
     }
     if (camera_model == CAMERA_OV7725)
     {
-        printf(TAG, "Detected OV7725 camera");
+        // printf(TAG, "Detected OV7725 camera");
         if (config->pixel_format == PIXFORMAT_JPEG)
         {
-            printf(TAG, "Camera does not support JPEG");
+            // printf(TAG, "Camera does not support JPEG");
             err = ESP_ERR_CAMERA_NOT_SUPPORTED;
             goto fail;
         }
     }
     else if (camera_model == CAMERA_OV2640)
     {
-        printf(TAG, "Detected OV2640 camera");
+        // printf(TAG, "Detected OV2640 camera");
     }
     else if (camera_model == CAMERA_OV3660)
     {
-        printf(TAG, "Detected OV3660 camera");
+        // printf(TAG, "Detected OV3660 camera");
     }
     else if (camera_model == CAMERA_OV5640)
     {
-        printf(TAG, "Detected OV5640 camera");
+        // printf(TAG, "Detected OV5640 camera");
     }
     else if (camera_model == CAMERA_OV7670)
     {
-        printf(TAG, "Detected OV7670 camera");
+        // printf(TAG, "Detected OV7670 camera");
     }
     else if (camera_model == CAMERA_NT99141)
     {
-        printf(TAG, "Detected NT99141 camera");
+        // printf(TAG, "Detected NT99141 camera");
     }
     else
     {
-        printf(TAG, "Camera not supported");
+        // printf(TAG, "Camera not supported");
         err = ESP_ERR_CAMERA_NOT_SUPPORTED;
         goto fail;
     }
     err = camera_init(config);
     if (err != 0)
     {
-        printf(TAG, "Camera init failed with error 0x%x", err);
+        // printf(TAG, "Camera init failed with error 0x%x", err);
         return err;
     }
     return 0;
@@ -1755,7 +1755,7 @@ camera_fb_t *arduino_camera_fb_get()
     {
         if (xSemaphoreTake(s_state->frame_ready, FB_GET_TIMEOUT) != pdTRUE)
         {
-            printf(TAG, "Failed to get the frame on time!");
+            // printf(TAG, "Failed to get the frame on time!");
             return NULL;
         }
         return (camera_fb_t *)s_state->fb;
@@ -1765,7 +1765,7 @@ camera_fb_t *arduino_camera_fb_get()
     {
         if (xQueueReceive(s_state->fb_out, &fb, FB_GET_TIMEOUT) != pdTRUE)
         {
-            printf(TAG, "Failed to get the frame on time!");
+            // printf(TAG, "Failed to get the frame on time!");
             return NULL;
         }
     }
@@ -1888,7 +1888,7 @@ uint8_t arduino_camera_load_from_nvs(const char *key)
     }
     else
     {
-        ESP_LOGW(TAG, "Error (%d) opening nvs key \"%s\"", ret, key);
+        // ESP_LOGW(TAG, "Error (%d) opening nvs key \"%s\"", ret, key);
         return ret;
     }
 }
