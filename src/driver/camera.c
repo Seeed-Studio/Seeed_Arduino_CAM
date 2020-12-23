@@ -239,7 +239,7 @@ static uint8_t camera_fb_init(size_t count)
 {
     if (!count)
     {
-        return ESP_ERR_INVALID_ARG;
+        return -1;
     }
 
     camera_fb_deinit();
@@ -257,21 +257,21 @@ static uint8_t camera_fb_init(size_t count)
         memset(_fb2, 0, sizeof(camera_fb_int_t));
         _fb2->size = s_state->fb_size;
         _fb2->buf = (uint8_t *)calloc(_fb2->size, 1);
-        if (!_fb2->buf)
-        {
-            printf(TAG, "Allocating %d KB frame buffer in PSRAM", s_state->fb_size / 1024);
-            _fb2->buf = (uint8_t *)heap_caps_calloc(_fb2->size, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        }
-        else
-        {
-            printf(TAG, "Allocating %d KB frame buffer in OnBoard RAM", s_state->fb_size / 1024);
-        }
-        if (!_fb2->buf)
-        {
-            free(_fb2);
-            printf(TAG, "Allocating %d KB frame buffer Failed", s_state->fb_size / 1024);
-            goto fail;
-        }
+        // if (!_fb2->buf)
+        // {
+        //     printf(TAG, "Allocating %d KB frame buffer in PSRAM", s_state->fb_size / 1024);
+        //     _fb2->buf = (uint8_t *)heap_caps_calloc(_fb2->size, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        // }
+        // else
+        // {
+        //     printf(TAG, "Allocating %d KB frame buffer in OnBoard RAM", s_state->fb_size / 1024);
+        // }
+        // if (!_fb2->buf)
+        // {
+        //     free(_fb2);
+        //     printf(TAG, "Allocating %d KB frame buffer Failed", s_state->fb_size / 1024);
+        //     goto fail;
+        // }
         memset(_fb2->buf, 0, _fb2->size);
         _fb2->next = _fb;
         _fb = _fb2;
@@ -297,7 +297,7 @@ fail:
         free(_fb2->buf);
         free(_fb2);
     }
-    return ESP_ERR_NO_MEM;
+    return -1;
 }
 
 static uint8_t dma_desc_init()
@@ -1483,8 +1483,8 @@ uint8_t camera_init(const camera_config_t *config)
         s_state->in_bytes_per_pixel = 2;
         s_state->fb_bytes_per_pixel = 2;
         s_state->fb_size = (s_state->width * s_state->height * s_state->fb_bytes_per_pixel) / compression_ratio_bound;
-        s_state->dma_filter = &dma_filter_jpeg;
-        s_state->sampling_mode = SM_0A00_0B00;
+        // s_state->dma_filter = &dma_filter_jpeg;
+        // s_state->sampling_mode = SM_0A00_0B00;
     }
     else
     {
@@ -1519,8 +1519,7 @@ uint8_t camera_init(const camera_config_t *config)
     if (s_state->data_ready == NULL)
     {
         printf(TAG, "Failed to dma queue");
-        err = ESP_ERR_NO_MEM;
-        goto fail;
+        err = -1 goto fail;
     }
 
     if (s_state->config.fb_count == 1)
@@ -1529,7 +1528,7 @@ uint8_t camera_init(const camera_config_t *config)
         if (s_state->frame_ready == NULL)
         {
             printf(TAG, "Failed to create semaphore");
-            err = ESP_ERR_NO_MEM;
+            err = -1;
             goto fail;
         }
     }
@@ -1540,7 +1539,7 @@ uint8_t camera_init(const camera_config_t *config)
         if (s_state->fb_in == NULL || s_state->fb_out == NULL)
         {
             printf(TAG, "Failed to fb queues");
-            err = ESP_ERR_NO_MEM;
+            err = -1;
             goto fail;
         }
     }
@@ -1560,24 +1559,34 @@ uint8_t camera_init(const camera_config_t *config)
     }
 
     vsync_intr_disable();
-    err = gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
-    if (err != 0)
+    // err = gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
+    // if (err != 0)
+    // {
+    //     if (err != ESP_ERR_INVALID_STATE)
+    //     {
+    //         printf(TAG, "gpio_install_isr_service failed (%x)", err);
+    //         goto fail;
+    //     }
+    //     else
+    //     {
+    //         ESP_LOGW(TAG, "gpio_install_isr_service already installed");
+    //     }
+    // }
+    // err = gpio_isr_handler_add(s_state->config.pin_vsync, &vsync_isr, NULL);
+    // if (err != 0)
+    // {
+    //     printf(TAG, "vsync_isr_handler_add failed (%x)", err);
+    //     goto fail;
+    // }
+
+    void DMA2_Stream1_IRQHandler(void)
     {
-        if (err != ESP_ERR_INVALID_STATE)
-        {
-            printf(TAG, "gpio_install_isr_service failed (%x)", err);
-            goto fail;
-        }
-        else
-        {
-            ESP_LOGW(TAG, "gpio_install_isr_service already installed");
-        }
+        HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
     }
-    err = gpio_isr_handler_add(s_state->config.pin_vsync, &vsync_isr, NULL);
-    if (err != 0)
+
+    void DCMI_PSSI_IRQHandler(void)
     {
-        printf(TAG, "vsync_isr_handler_add failed (%x)", err);
-        goto fail;
+        HAL_DCMI_IRQHandler(&DCMI_Handle);
     }
 
     s_state->sensor.status.framesize = frame_size;
