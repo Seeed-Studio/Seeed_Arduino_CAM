@@ -15,7 +15,6 @@
 #include <string.h>
 #include "conversions/include/img_converters.h"
 #include "conversions/include/yuv.h"
-#include "sdkconfig.h"
 #include "conversions/include/arduino_jpg_decode.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 4 // IDF 4+

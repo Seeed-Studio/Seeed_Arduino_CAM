@@ -107,14 +107,11 @@ typedef struct {
     size_t dma_buf_width;
     size_t dma_sample_count;
 
-    lldesc_t *dma_desc;
     dma_elem_t **dma_buf;
     size_t dma_desc_count;
     size_t dma_desc_cur;
 
-    i2s_sampling_mode_t sampling_mode;
     dma_filter_t dma_filter;
-    intr_handle_t i2s_intr_handle;
     QueueHandle_t data_ready;
     QueueHandle_t fb_in;
     QueueHandle_t fb_out;
@@ -125,10 +122,8 @@ typedef struct {
 
 camera_state_t* s_state = NULL;
 
-static void i2s_init();
-static int i2s_run();
+
 static void IRAM_ATTR vsync_isr(void* arg);
-static void IRAM_ATTR i2s_isr(void* arg);
 static uint8_t dma_desc_init();
 static void dma_desc_deinit();
 static void dma_filter_task(void *pvParameters);
@@ -137,27 +132,13 @@ static void dma_filter_grayscale_highspeed(const dma_elem_t* src, lldesc_t* dma_
 static void dma_filter_yuyv(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
 static void dma_filter_yuyv_highspeed(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
 static void dma_filter_jpeg(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
-static void i2s_stop(bool* need_yield);
 
 static bool is_hs_mode()
 {
     return s_state->config.xclk_freq_hz > 10000000;
 }
 
-static size_t i2s_bytes_per_sample(i2s_sampling_mode_t mode)
-{
-    switch(mode) {
-    case SM_0A00_0B00:
-        return 4;
-    case SM_0A0B_0B0C:
-        return 4;
-    case SM_0A0B_0C0D:
-        return 2;
-    default:
-        assert(0 && "invalid sampling mode");
-        return 0;
-    }
-}
+
 
 static int IRAM_ATTR _gpio_get_level(gpio_num_t gpio_num)
 {
@@ -367,21 +348,6 @@ static void dma_desc_deinit()
     free(s_state->dma_desc);
 }
 
-static inline void IRAM_ATTR i2s_conf_reset()
-{
-    const uint32_t lc_conf_reset_flags = I2S_IN_RST_M | I2S_AHBM_RST_M
-                                         | I2S_AHBM_FIFO_RST_M;
-    I2S0.lc_conf.val |= lc_conf_reset_flags;
-    I2S0.lc_conf.val &= ~lc_conf_reset_flags;
-
-    const uint32_t conf_reset_flags = I2S_RX_RESET_M | I2S_RX_FIFO_RESET_M
-                                      | I2S_TX_RESET_M | I2S_TX_FIFO_RESET_M;
-    I2S0.conf.val |= conf_reset_flags;
-    I2S0.conf.val &= ~conf_reset_flags;
-    while (I2S0.state.rx_fifo_reset_back) {
-        ;
-    }
-}
 
 static void hw_gpio_init(const camera_config_t* config)
 {
@@ -481,142 +447,6 @@ static void dcmi_init()
 
 }
 
-static void i2s_init()
-{
-    camera_config_t* config = &s_state->config;
-
-    // Route input GPIOs to I2S peripheral using GPIO matrix
-    gpio_matrix_in(config->pin_d0, I2S0I_DATA_IN0_IDX, false);
-    gpio_matrix_in(config->pin_d1, I2S0I_DATA_IN1_IDX, false);
-    gpio_matrix_in(config->pin_d2, I2S0I_DATA_IN2_IDX, false);
-    gpio_matrix_in(config->pin_d3, I2S0I_DATA_IN3_IDX, false);
-    gpio_matrix_in(config->pin_d4, I2S0I_DATA_IN4_IDX, false);
-    gpio_matrix_in(config->pin_d5, I2S0I_DATA_IN5_IDX, false);
-    gpio_matrix_in(config->pin_d6, I2S0I_DATA_IN6_IDX, false);
-    gpio_matrix_in(config->pin_d7, I2S0I_DATA_IN7_IDX, false);
-    gpio_matrix_in(config->pin_vsync, I2S0I_V_SYNC_IDX, false);
-    gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);
-    gpio_matrix_in(config->pin_href, I2S0I_H_ENABLE_IDX, false);
-    gpio_matrix_in(config->pin_pclk, I2S0I_WS_IN_IDX, false);
-
-    // Enable and configure I2S peripheral
-    periph_module_enable(PERIPH_I2S0_MODULE);
-    // Toggle some reset bits in LC_CONF register
-    // Toggle some reset bits in CONF register
-    i2s_conf_reset();
-    // Enable slave mode (sampling clock is external)
-    I2S0.conf.rx_slave_mod = 1;
-    // Enable parallel mode
-    I2S0.conf2.lcd_en = 1;
-    // Use HSYNC/VSYNC/HREF to control sampling
-    I2S0.conf2.camera_en = 1;
-    // Configure clock divider
-    I2S0.clkm_conf.clkm_div_a = 1;
-    I2S0.clkm_conf.clkm_div_b = 0;
-    I2S0.clkm_conf.clkm_div_num = 2;
-    // FIFO will sink data to DMA
-    I2S0.fifo_conf.dscr_en = 1;
-    // FIFO configuration
-    I2S0.fifo_conf.rx_fifo_mod = s_state->sampling_mode;
-    I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
-    I2S0.conf_chan.rx_chan_mod = 1;
-    // Clear flags which are used in I2S serial mode
-    I2S0.sample_rate_conf.rx_bits_mod = 0;
-    I2S0.conf.rx_right_first = 0;
-    I2S0.conf.rx_msb_right = 0;
-    I2S0.conf.rx_msb_shift = 0;
-    I2S0.conf.rx_mono = 0;
-    I2S0.conf.rx_short_sync = 0;
-    I2S0.timing.val = 0;
-    I2S0.timing.rx_dsync_sw = 1;
-
-    // Allocate I2S interrupt, keep it disabled
-    ESP_ERROR_CHECK(esp_intr_alloc(ETS_I2S0_INTR_SOURCE,
-                   ESP_INTR_FLAG_INTRDISABLED | ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM,
-                   &i2s_isr, NULL, &s_state->i2s_intr_handle));
-}
-
-static void IRAM_ATTR i2s_start_bus()
-{
-    s_state->dma_desc_cur = 0;
-    s_state->dma_received_count = 0;
-    //s_state->dma_filtered_count = 0;
-    esp_intr_disable(s_state->i2s_intr_handle);
-    i2s_conf_reset();
-
-    I2S0.rx_eof_num = s_state->dma_sample_count;
-    I2S0.in_link.addr = (uint32_t) &s_state->dma_desc[0];
-    I2S0.in_link.start = 1;
-    I2S0.int_clr.val = I2S0.int_raw.val;
-    I2S0.int_ena.val = 0;
-    I2S0.int_ena.in_done = 1;
-
-    esp_intr_enable(s_state->i2s_intr_handle);
-    I2S0.conf.rx_start = 1;
-    if (s_state->config.pixel_format == PIXFORMAT_JPEG) {
-        vsync_intr_enable();
-    }
-}
-
-static int i2s_run()
-{
-    for (int i = 0; i < s_state->dma_desc_count; ++i) {
-        lldesc_t* d = &s_state->dma_desc[i];
-        ESP_LOGV(TAG, "DMA desc %2d: %u %u %u %u %u %u %p %p",
-                 i, d->length, d->size, d->offset, d->eof, d->sosf, d->owner, d->buf, d->qe.stqe_next);
-        memset(s_state->dma_buf[i], 0, d->length);
-    }
-
-    // wait for frame
-    camera_fb_int_t * fb = s_state->fb;
-    while(s_state->config.fb_count > 1) {
-        while(s_state->fb->ref && s_state->fb->next != fb) {
-            s_state->fb = s_state->fb->next;
-        }
-        if(s_state->fb->ref == 0) {
-            break;
-        }
-        vTaskDelay(2);
-    }
-
-    //todo: wait for vsync
-    ESP_LOGV(TAG, "Waiting for negative edge on VSYNC");
-
-    int64_t st_t = esp_timer_get_time();
-    while (_gpio_get_level(s_state->config.pin_vsync) != 0) {
-        if((esp_timer_get_time() - st_t) > 1000000LL){
-            ESP_LOGE(TAG, "Timeout waiting for VSYNC");
-            return -1;
-        }
-    }
-    ESP_LOGV(TAG, "Got VSYNC");
-    i2s_start_bus();
-    return 0;
-}
-
-static void IRAM_ATTR i2s_stop_bus()
-{
-    esp_intr_disable(s_state->i2s_intr_handle);
-    vsync_intr_disable();
-    i2s_conf_reset();
-    I2S0.conf.rx_start = 0;
-}
-
-static void IRAM_ATTR i2s_stop(bool* need_yield)
-{
-    if(s_state->config.fb_count == 1 && !s_state->fb->bad) {
-        i2s_stop_bus();
-    } else {
-        s_state->dma_received_count = 0;
-    }
-
-    size_t val = SIZE_MAX;
-    BaseType_t higher_priority_task_woken;
-    BaseType_t ret = xQueueSendFromISR(s_state->data_ready, &val, &higher_priority_task_woken);
-    if(need_yield && !*need_yield) {
-        *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
-    }
-}
 
 static void IRAM_ATTR signal_dma_buf_received(bool* need_yield)
 {
@@ -640,20 +470,8 @@ static void IRAM_ATTR signal_dma_buf_received(bool* need_yield)
     *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
 }
 
-static void IRAM_ATTR i2s_isr(void* arg)
-{
-    I2S0.int_clr.val = I2S0.int_raw.val;
-    bool need_yield = false;
-    signal_dma_buf_received(&need_yield);
-    if (s_state->config.pixel_format != PIXFORMAT_JPEG
-     && s_state->dma_received_count == s_state->height * s_state->dma_per_line) {
-        i2s_stop(&need_yield);
-    }
-    if (need_yield) {
-        portYIELD_FROM_ISR();
-    }
-}
 
+#if 0
 static void IRAM_ATTR vsync_isr(void* arg)
 {
     GPIO.status1_w1tc.val = GPIO.status1.val;
@@ -686,6 +504,7 @@ static void IRAM_ATTR vsync_isr(void* arg)
         portYIELD_FROM_ISR();
     }
 }
+#endif
 
 static void IRAM_ATTR camera_fb_done()
 {
@@ -747,6 +566,9 @@ static void IRAM_ATTR camera_fb_done()
     }
 }
 
+
+#if 0
+TODO: to be removed?
 static void IRAM_ATTR dma_finish_frame()
 {
     size_t buf_len = s_state->width * s_state->fb_bytes_per_pixel / s_state->dma_per_line;
@@ -796,6 +618,7 @@ static void IRAM_ATTR dma_finish_frame()
     }
     s_state->dma_filtered_count = 0;
 }
+#endif
 
 static void IRAM_ATTR dma_filter_buffer(size_t buf_idx)
 {
@@ -1038,29 +861,19 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
     if (!s_state) {
         return -1;
     }
-
-    // if(config->pin_xclk >= 0) {
-    // //   ESP_LOGD(TAG, "Enabling XCLK output");
-    //   camera_enable_out_clock(config);
-    // }
-
+#if 0
+    TODO: to be removed?
+    if(config->pin_xclk >= 0) {
+    //   ESP_LOGD(TAG, "Enabling XCLK output");
+      camera_enable_out_clock(config);
+    }
+#endif
     if (config->pin_sscb_sda != -1) {
     //   ESP_LOGD(TAG, "Initializing SSCB");
       SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);
     }
 	
     if(config->pin_pwdn >= 0) {
-        // ESP_LOGD(TAG, "Resetting camera by power down line");
-        // gpio_config_t conf = { 0 };
-        // conf.pin_bit_mask = 1LL << config->pin_pwdn;
-        // conf.mode = GPIO_MODE_OUTPUT;
-        // gpio_config(&conf);
-
-        // // carefull, logic is inverted compared to reset pin
-        // gpio_set_level(config->pin_pwdn, 1);
-        // vTaskDelay(10 / portTICK_PERIOD_MS);
-        // gpio_set_level(config->pin_pwdn, 0);
-        // vTaskDelay(10 / portTICK_PERIOD_MS);
 
         digitalWrite(config->pin_pwdn, 1);
         vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -1069,16 +882,6 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
     }
 
     if(config->pin_reset >= 0) {
-        // ESP_LOGD(TAG, "Resetting camera");
-        // gpio_config_t conf = { 0 };
-        // conf.pin_bit_mask = 1LL << config->pin_reset;
-        // conf.mode = GPIO_MODE_OUTPUT;
-        // gpio_config(&conf);
-
-        // gpio_set_level(config->pin_reset, 0);
-        // vTaskDelay(10 / portTICK_PERIOD_MS);
-        // gpio_set_level(config->pin_reset, 1);
-        // vTaskDelay(10 / portTICK_PERIOD_MS);
         digitalWrite(config->pin_reset, 0);
         vTaskDelay(10 / portTICK_PERIOD_MS);
         digitalWrite(config->pin_reset, 1);
@@ -1402,6 +1205,7 @@ uint8_t camera_init(const camera_config_t* config)
         goto fail;
     }
 #if 0
+    TODO: to be removed?
     vsync_intr_disable();
     err = gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
     if (err != ESP_OK) {
@@ -1536,11 +1340,13 @@ uint8_t arduino_camera_deinit()
     if (s_state->frame_ready) {
         vSemaphoreDelete(s_state->frame_ready);
     }
+#if 0
     gpio_isr_handler_remove(s_state->config.pin_vsync);
     if (s_state->i2s_intr_handle) {
         esp_intr_disable(s_state->i2s_intr_handle);
         esp_intr_free(s_state->i2s_intr_handle);
     }
+#endif
     dma_desc_deinit();
     camera_fb_deinit();
 
