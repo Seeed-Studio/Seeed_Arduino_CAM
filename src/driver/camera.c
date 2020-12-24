@@ -42,6 +42,9 @@
 #include "ov7670.h"
 #endif
 
+DCMI_HandleTypeDef DCMI_Handle;
+DMA_HandleTypeDef DMA_Handle_dcmi;
+
 typedef enum {
     CAMERA_NONE = 0,
     CAMERA_UNKNOWN = 1,
@@ -274,6 +277,7 @@ fail:
 
 static uint8_t dma_desc_init()
 {
+#if 0
     assert(s_state->width % 4 == 0);
     size_t line_size = s_state->width * s_state->in_bytes_per_pixel *
                        i2s_bytes_per_sample(s_state->sampling_mode);
@@ -328,6 +332,28 @@ static uint8_t dma_desc_init()
     }
     s_state->dma_sample_count = dma_sample_count;
     return ESP_OK;
+#endif
+    __HAL_RCC_DMA2_CLK_ENABLE();
+    DMA_Handle_dcmi.Instance = DMA2_Stream1;
+    DMA_Handle_dcmi.Init.Request = DMA_REQUEST_DCMI;
+    DMA_Handle_dcmi.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    DMA_Handle_dcmi.Init.PeriphInc = DMA_PINC_DISABLE;
+    DMA_Handle_dcmi.Init.MemInc = DMA_MINC_ENABLE;
+    DMA_Handle_dcmi.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    DMA_Handle_dcmi.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    DMA_Handle_dcmi.Init.Mode = DMA_CIRCULAR;
+    DMA_Handle_dcmi.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    DMA_Handle_dcmi.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    DMA_Handle_dcmi.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    DMA_Handle_dcmi.Init.MemBurst = DMA_MBURST_INC8;
+    DMA_Handle_dcmi.Init.PeriphBurst = DMA_PBURST_SINGLE;
+
+    HAL_DMA_Init(&DMA_Handle_dcmi);
+    __HAL_LINKDMA(&DCMI_Handle, DMA_Handle, DMA_Handle_dcmi);
+
+    HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+    return 0;
 }
 
 static void dma_desc_deinit()
@@ -359,34 +385,36 @@ static inline void IRAM_ATTR i2s_conf_reset()
 
 static void hw_gpio_init(const camera_config_t* config)
 {
-    // Configure input GPIOs
-    // const gpio_num_t pins[] = {
-    //     config->pin_d7,
-    //     config->pin_d6,
-    //     config->pin_d5,
-    //     config->pin_d4,
-    //     config->pin_d3,
-    //     config->pin_d2,
-    //     config->pin_d1,
-    //     config->pin_d0,
-    //     config->pin_vsync,
-    //     config->pin_href,
-    //     config->pin_pclk
-    // };
-    // gpio_config_t conf = {
-    //     .mode = GPIO_MODE_INPUT,
-    //     .pull_up_en = GPIO_PULLUP_ENABLE,
-    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    //     .intr_type = GPIO_INTR_DISABLE,
-    //     .pin_bit_mask = 0LL
-    // };
-    // for (int i = 0; i < sizeof(pins) / sizeof(gpio_num_t); ++i) {
-    //     if (rtc_gpio_is_valid_gpio(pins[i])) {
-    //         rtc_gpio_deinit(pins[i]);
-    //     }
-    //     conf.pin_bit_mask |= 1LL << pins[i];
-    // }
-    // gpio_config(&conf);
+#if 0
+    Configure input GPIOs
+    const gpio_num_t pins[] = {
+        config->pin_d7,
+        config->pin_d6,
+        config->pin_d5,
+        config->pin_d4,
+        config->pin_d3,
+        config->pin_d2,
+        config->pin_d1,
+        config->pin_d0,
+        config->pin_vsync,
+        config->pin_href,
+        config->pin_pclk
+    };
+    gpio_config_t conf = {
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+        .pin_bit_mask = 0LL
+    };
+    for (int i = 0; i < sizeof(pins) / sizeof(gpio_num_t); ++i) {
+        if (rtc_gpio_is_valid_gpio(pins[i])) {
+            rtc_gpio_deinit(pins[i]);
+        }
+        conf.pin_bit_mask |= 1LL << pins[i];
+    }
+    gpio_config(&conf);
+#endif
     __HAL_RCC_GPIOE_CLK_ENABLE();
     __HAL_RCC_GPIOG_CLK_ENABLE();
     // __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -424,6 +452,33 @@ static void hw_gpio_init(const camera_config_t* config)
         PinName x = digitalPinToPinName(pins[i]);
         pin_function(x, STM_PIN_DATA(STM_MODE_AF_PP, GPIO_NOPULL, 13));
     }
+}
+
+static void dcmi_init()
+{
+    __HAL_RCC_DCMI_CLK_ENABLE();
+
+
+	DCMI_Handle.Instance              = DCMI;    
+
+	DCMI_Handle.Init.SynchroMode      = DCMI_MODE_CONTINUOUS;
+
+	DCMI_Handle.Init.SynchroMode      = DCMI_SYNCHRO_HARDWARE;
+
+	DCMI_Handle.Init.PCKPolarity      = DCMI_PCKPOLARITY_RISING;
+
+	DCMI_Handle.Init.VSPolarity       = DCMI_VSPOLARITY_LOW;
+
+	DCMI_Handle.Init.HSPolarity       = DCMI_HSPOLARITY_LOW;
+
+	DCMI_Handle.Init.CaptureRate      = DCMI_CR_ALL_FRAME;
+
+	DCMI_Handle.Init.ExtendedDataMode = DCMI_EXTEND_DATA_8B;
+	HAL_DCMI_Init(&DCMI_Handle);
+
+	HAL_NVIC_SetPriority(DCMI_IRQn, 0 ,5);
+	HAL_NVIC_EnableIRQ(DCMI_IRQn);
+
 }
 
 static void i2s_init()
@@ -1294,7 +1349,7 @@ uint8_t camera_init(const camera_config_t* config)
              s_state->fb_size, s_state->sampling_mode,
              s_state->width, s_state->height);
 
-    i2s_init();
+    dcmi_init();
 
     err = dma_desc_init();
     if (err != ESP_OK) {
@@ -1346,7 +1401,7 @@ uint8_t camera_init(const camera_config_t* config)
         err = ESP_ERR_NO_MEM;
         goto fail;
     }
-
+#if 0
     vsync_intr_disable();
     err = gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
     if (err != ESP_OK) {
@@ -1362,6 +1417,16 @@ uint8_t camera_init(const camera_config_t* config)
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "vsync_isr_handler_add failed (%x)", err);
         goto fail;
+    }
+#endif
+    void DMA2_Stream1_IRQHandler(void)
+    {
+        HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
+    }
+
+    void DCMI_PSSI_IRQHandler(void)
+    {
+        HAL_DCMI_IRQHandler(&DCMI_Handle);
     }
 
     s_state->sensor.status.framesize = frame_size;
