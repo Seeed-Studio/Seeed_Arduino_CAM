@@ -1429,6 +1429,15 @@ uint8_t camera_init(const camera_config_t* config)
         HAL_DCMI_IRQHandler(&DCMI_Handle);
     }
 
+    void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef * hdcmi)
+    {
+        bool need_yield = false;
+        signal_dma_buf_received(&need_yield);
+        if (need_yield) {
+        portYIELD_FROM_ISR();
+        }
+    }
+
     s_state->sensor.status.framesize = frame_size;
     s_state->sensor.pixformat = pix_format;
     ESP_LOGD(TAG, "Setting frame size to %dx%d", s_state->width, s_state->height);
