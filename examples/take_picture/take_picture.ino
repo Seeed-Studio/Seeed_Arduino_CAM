@@ -33,10 +33,10 @@
 #include <sys/param.h>
 #include <string.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "STM32FreeRTOS.h"
 
-#include "arduino_camera.h"
+
+#include "seeed_camera.h"
 
 // WROVER-KIT PIN Map
 #define CAM_PIN_PWDN 24  //power down is not used

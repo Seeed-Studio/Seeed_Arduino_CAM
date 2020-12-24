@@ -9,10 +9,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sccb.h"
-#include "nt99141.h"
-#include "nt99141_regs.h"
-#include "nt99141_settings.h"
+#include "driver/include/sccb.h"
+#include "sensors/include/nt99141.h"
+#include "sensors/include/nt99141_regs.h"
+#include "sensors/include/nt99141_settings.h"
 
 //#define REG_DEBUG_ON
 

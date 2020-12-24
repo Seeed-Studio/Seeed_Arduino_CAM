@@ -1,4 +1,6 @@
 
+#include "driver/include/xclk.h"
+
 uint8_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz)
 {
     return 0;

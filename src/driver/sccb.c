@@ -7,6 +7,7 @@
  *
  */
 
+#include "driver/include/sccb.h"
 
 int SCCB_Init(int pin_sda, int pin_scl)
 {

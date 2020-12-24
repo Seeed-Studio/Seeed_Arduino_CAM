@@ -9,7 +9,7 @@
 #ifndef __OV3660_H__
 #define __OV3660_H__
 
-#include "sensor.h"
+#include "driver/include/sensor.h"
 
 int ov3660_init(sensor_t *sensor);
 

@@ -9,7 +9,7 @@
 #ifndef __NT99141_H__
 #define __NT99141_H__
 
-#include "sensor.h"
+#include "driver/include/sensor.h"
 
 int NT99141_init(sensor_t *sensor);
 

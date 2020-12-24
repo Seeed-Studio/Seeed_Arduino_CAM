@@ -1,4 +1,4 @@
-#include "sensor.h"
+#include "driver/include/sensor.h"
 
 const resolution_info_t resolution[FRAMESIZE_INVALID] = {
     {   96,   96, ASPECT_RATIO_1X1   }, /* 96x96 */

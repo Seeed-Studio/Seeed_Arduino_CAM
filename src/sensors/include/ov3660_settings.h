@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "esp_attr.h"
 #include "ov3660_regs.h"
 
 static const ratio_settings_t ratio_table[] = {

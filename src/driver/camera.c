@@ -14,11 +14,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sensors/sensor.h"
-#include "driver/sccb.h"
+#include "driver/include/sensor.h"
+#include "driver/include/sccb.h"
 #include "driver/include/arduino_camera.h"
-#include "driver/camera_common.h"
-#include "driver/xclk.h"
+#include "driver/include/camera_common.h"
+#include "driver/include/xclk.h"
 #include "PinConfigured.h"
 
 

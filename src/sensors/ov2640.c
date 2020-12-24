@@ -9,10 +9,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sccb.h"
-#include "ov2640.h"
-#include "ov2640_regs.h"
-#include "ov2640_settings.h"
+#include "driver/include/sccb.h"
+#include "sensors/include/ov2640.h"
+#include "sensors/include/ov2640_regs.h"
+#include "sensors/include/ov2640_settings.h"
 
 
 static volatile ov2640_bank_t reg_bank = BANK_MAX;

@@ -8,7 +8,7 @@
 //                       Code tweaks to fix VS2008 static code analysis warnings (all looked harmless).
 //                       Code review revealed method load_block_16_8_8() (used for the non-default H2V1 sampling mode to downsample chroma) somehow didn't get the rounding factor fix from v1.02.
 
-#include "jpge.h"
+#include "conversions/include/jpge.h"
 
 #include <stdint.h>
 #include <stdarg.h>
@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
-#include "esp_heap_caps.h"
 
 #define JPGE_MAX(a,b) (((a)>(b))?(a):(b))
 #define JPGE_MIN(a,b) (((a)<(b))?(a):(b))
