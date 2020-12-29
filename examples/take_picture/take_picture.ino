@@ -57,7 +57,6 @@
 #define CAM_PIN_HREF 23
 #define CAM_PIN_PCLK 18
 
-static const char *TAG = "example:take_picture";
 
 static camera_config_t camera_config = {
     .pin_pwdn = CAM_PIN_PWDN,
@@ -93,10 +92,10 @@ static camera_config_t camera_config = {
 static int8_t init_camera()
 {
     //initialize the camera
-    esp_err_t err = arduino_camera_init(&camera_config);
+    uint8_t err = arduino_camera_init(&camera_config);
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "Camera Init Failed");
+        printf("Camera Init Failed");
         return err;
     }
 
@@ -109,9 +108,9 @@ void setup()
 }
 
 void loop() {
-        ESP_LOGI(TAG, "Taking picture...");
+        printf("Taking picture...");
         camera_fb_t *pic = esp_camera_fb_get();
         // use pic->buf to access the image
-        ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
-        vTaskDelay(5000 / portTICK_RATE_MS); 
+        printf("Picture taken! Its size was: %zu bytes", pic->len);
+        delay(500);
 }
