@@ -6,6 +6,8 @@
  * OV7725 driver.
  *
  */
+
+#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,7 +152,7 @@ int ret = 0;
 	while ( (vals->reg_num != 0xff || vals->value != 0xff) && (ret == 0) ) {
         ret = SCCB_Write(sensor->slv_addr, vals->reg_num, vals->value);
 
-	    ESP_LOGD(TAG, "reset reg %02X, W(%02X) R(%02X)", vals->reg_num, 
+	    printf("reset reg %02X, W(%02X) R(%02X)", vals->reg_num, 
                         vals->value, SCCB_Read(sensor->slv_addr, vals->reg_num) );
 		
 		vals++;
@@ -424,7 +426,9 @@ int ov7670_init(sensor_t *sensor)
     sensor->id.PID = SCCB_Read(sensor->slv_addr, REG_PID);
     sensor->id.VER = SCCB_Read(sensor->slv_addr, REG_VER);
     
-    ESP_LOGD(TAG, "OV7670 Attached");
+    printf("OV7670 Attached");
     
     return 0;
 }
+
+#endif

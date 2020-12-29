@@ -6,6 +6,8 @@
  * NT99141 driver.
  *
  */
+
+#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +24,7 @@ static int read_reg(uint8_t slv_addr, const uint16_t reg)
 #ifdef REG_DEBUG_ON
 
     if (ret < 0) {
-        ESP_LOGE(TAG, "READ REG 0x%04x FAILED: %d", reg, ret);
+        printf("READ REG 0x%04x FAILED: %d", reg, ret);
     }
 
 #endif
@@ -67,15 +69,15 @@ static int write_reg(uint8_t slv_addr, const uint16_t reg, uint8_t value)
     }
 
     if ((uint8_t)old_value != value) {
-        ESP_LOGD(TAG, "NEW REG 0x%04x: 0x%02x to 0x%02x", reg, (uint8_t)old_value, value);
+        printf("NEW REG 0x%04x: 0x%02x to 0x%02x", reg, (uint8_t)old_value, value);
         ret = SCCB_Write16(slv_addr, reg, value);
     } else {
-        ESP_LOGD(TAG, "OLD REG 0x%04x: 0x%02x", reg, (uint8_t)old_value);
+        printf("OLD REG 0x%04x: 0x%02x", reg, (uint8_t)old_value);
         ret = SCCB_Write16(slv_addr, reg, value);//maybe not?
     }
 
     if (ret < 0) {
-        ESP_LOGE(TAG, "WRITE REG 0x%04x FAILED: %d", reg, ret);
+        printf("WRITE REG 0x%04x FAILED: %d", reg, ret);
     }
 
 #endif
@@ -153,7 +155,7 @@ static int calc_sysclk(int xclk, bool pll_bypass, int pll_multiplier, int pll_sy
     int PCLK = PLLCLK / 2 / ((pclk_manual && pclk_div) ? pclk_div : 1);
     int SYSCLK = PLLCLK / 4;
 
-    ESP_LOGD(TAG, "Calculated VCO: %d Hz, PLLCLK: %d Hz, SYSCLK: %d Hz, PCLK: %d Hz", VCO * 1000, PLLCLK, SYSCLK, PCLK);
+    printf("Calculated VCO: %d Hz, PLLCLK: %d Hz, SYSCLK: %d Hz, PCLK: %d Hz", VCO * 1000, PLLCLK, SYSCLK, PCLK);
     return SYSCLK;
 }
 
@@ -172,7 +174,7 @@ static int reset(sensor_t *sensor)
     ret = write_reg(sensor->slv_addr, SYSTEM_CTROL0, 0x01);
 
     if (ret) {
-        ESP_LOGE(TAG, "Software Reset FAILED!");
+        printf("Software Reset FAILED!");
         return ret;
     }
 
@@ -180,7 +182,7 @@ static int reset(sensor_t *sensor)
     ret = write_regs(sensor->slv_addr, sensor_default_regs);   //re-initial
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Camera defaults loaded");
+        printf("Camera defaults loaded");
         ret = set_ae_level(sensor, 0);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
@@ -216,7 +218,7 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
             break;
 
         default:
-            ESP_LOGE(TAG, "Unsupported pixformat: %u", pixformat);
+            printf("Unsupported pixformat: %u", pixformat);
             return -1;
     }
 
@@ -224,7 +226,7 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
 
     if (ret == 0) {
         sensor->pixformat = pixformat;
-        ESP_LOGD(TAG, "Set pixformat to: %u", pixformat);
+        printf("Set pixformat to: %u", pixformat);
     }
 
     return ret;
@@ -255,11 +257,11 @@ static int set_image_options(sensor_t *sensor)
     }
 
     if (write_reg(sensor->slv_addr, TIMING_TC_REG20, reg20 | reg21)) {
-        ESP_LOGE(TAG, "Setting Image Options Failed");
+        printf("Setting Image Options Failed");
         ret = -1;
     }
 
-    ESP_LOGD(TAG, "Set Image Options: Compression: %u, Binning: %u, V-Flip: %u, H-Mirror: %u, Reg-4514: 0x%02x",
+    printf("Set Image Options: Compression: %u, Binning: %u, V-Flip: %u, H-Mirror: %u, Reg-4514: 0x%02x",
              sensor->pixformat == PIXFORMAT_JPEG, sensor->status.binning, sensor->status.vflip, sensor->status.hmirror, reg4514);
     return ret;
 }
@@ -272,31 +274,31 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
     ret = write_regs(sensor->slv_addr, sensor_default_regs);
 
     if (framesize == FRAMESIZE_QVGA) {
-        ESP_LOGD(TAG, "Set FRAMESIZE_QVGA");
+        printf("Set FRAMESIZE_QVGA");
         ret = write_regs(sensor->slv_addr, sensor_framesize_QVGA);
 #if    CONFIG_NT99141_SUPPORT_XSKIP
-        ESP_LOGD(TAG, "Set FRAMESIZE_QVGA: xskip mode");
+        printf("Set FRAMESIZE_QVGA: xskip mode");
         ret = write_regs(sensor->slv_addr, sensor_framesize_QVGA_xskip);
 #elif  CONFIG_NT99141_SUPPORT_CROP
-        ESP_LOGD(TAG, "Set FRAMESIZE_QVGA: crop mode");
+        printf("Set FRAMESIZE_QVGA: crop mode");
         ret = write_regs(sensor->slv_addr, sensor_framesize_QVGA_crop);
 #endif
     } else if (framesize == FRAMESIZE_VGA) {
-        ESP_LOGD(TAG, "Set FRAMESIZE_VGA");
+        printf("Set FRAMESIZE_VGA");
         // ret = write_regs(sensor->slv_addr, sensor_framesize_VGA);
         ret = write_regs(sensor->slv_addr, sensor_framesize_VGA_xyskip);// Resolution:640*360 This configuration is equally-scaled without deforming
 #ifdef CONFIG_NT99141_SUPPORT_XSKIP
-        ESP_LOGD(TAG, "Set FRAMESIZE_QVGA: xskip mode");
+        printf("Set FRAMESIZE_QVGA: xskip mode");
         ret = write_regs(sensor->slv_addr, sensor_framesize_VGA_xskip);
 #elif CONFIG_NT99141_SUPPORT_CROP
-        ESP_LOGD(TAG, "Set FRAMESIZE_QVGA: crop mode");
+        printf("Set FRAMESIZE_QVGA: crop mode");
         ret = write_regs(sensor->slv_addr, sensor_framesize_VGA_crop);
 #endif
     } else if (framesize >= FRAMESIZE_HD) {
-        ESP_LOGD(TAG, "Set FRAMESIZE_HD");
+        printf("Set FRAMESIZE_HD");
         ret = write_regs(sensor->slv_addr, sensor_framesize_HD);
     } else {
-        ESP_LOGD(TAG, "Dont suppost this size, Set FRAMESIZE_VGA");
+        printf("Dont suppost this size, Set FRAMESIZE_VGA");
         ret = write_regs(sensor->slv_addr, sensor_framesize_VGA);
     }
 
@@ -310,7 +312,7 @@ static int set_hmirror(sensor_t *sensor, int enable)
     ret = set_image_options(sensor);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set h-mirror to: %d", enable);
+        printf("Set h-mirror to: %d", enable);
     }
 
     return ret;
@@ -323,7 +325,7 @@ static int set_vflip(sensor_t *sensor, int enable)
     ret = set_image_options(sensor);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set v-flip to: %d", enable);
+        printf("Set v-flip to: %d", enable);
     }
 
     return ret;
@@ -336,7 +338,7 @@ static int set_quality(sensor_t *sensor, int qs)
 
     if (ret == 0) {
         sensor->status.quality = qs;
-        ESP_LOGD(TAG, "Set quality to: %d", qs);
+        printf("Set quality to: %d", qs);
     }
 
     return ret;
@@ -349,7 +351,7 @@ static int set_colorbar(sensor_t *sensor, int enable)
 
     if (ret == 0) {
         sensor->status.colorbar = enable;
-        ESP_LOGD(TAG, "Set colorbar to: %d", enable);
+        printf("Set colorbar to: %d", enable);
     }
 
     return ret;
@@ -361,7 +363,7 @@ static int set_gain_ctrl(sensor_t *sensor, int enable)
     ret = write_reg_bits(sensor->slv_addr, 0x32bb, 0x87, enable);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set gain_ctrl to: %d", enable);
+        printf("Set gain_ctrl to: %d", enable);
         sensor->status.agc = enable;
     }
 
@@ -374,17 +376,17 @@ static int set_exposure_ctrl(sensor_t *sensor, int enable)
        int data = 0;
     // ret = write_reg_bits(sensor->slv_addr, 0x32bb, 0x87, enable);
     data = read_reg(sensor->slv_addr, 0x3201);
-    ESP_LOGD(TAG, "set_exposure_ctrl:enable");
+    printf("set_exposure_ctrl:enable");
     if (enable) {
-        ESP_LOGD(TAG, "set_exposure_ctrl:enable");
+        printf("set_exposure_ctrl:enable");
         ret = write_reg(sensor->slv_addr, 0x3201, (1 << 5) | data);
     } else {
-        ESP_LOGD(TAG, "set_exposure_ctrl:disable");
+        printf("set_exposure_ctrl:disable");
         ret = write_reg(sensor->slv_addr, 0x3201, (~(1 << 5)) & data);
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set exposure_ctrl to: %d", enable);
+        printf("Set exposure_ctrl to: %d", enable);
         sensor->status.aec = enable;
     }
 
@@ -396,7 +398,7 @@ static int set_whitebal(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set awb to: %d", enable);
+        printf("Set awb to: %d", enable);
         sensor->status.awb = enable;
     }
 
@@ -409,7 +411,7 @@ static int set_dcw_dsp(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set dcw to: %d", enable);
+        printf("Set dcw to: %d", enable);
         sensor->status.dcw = enable;
     }
 
@@ -422,7 +424,7 @@ static int set_aec2(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set aec2 to: %d", enable);
+        printf("Set aec2 to: %d", enable);
         sensor->status.aec2 = enable;
     }
 
@@ -434,7 +436,7 @@ static int set_bpc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set bpc to: %d", enable);
+        printf("Set bpc to: %d", enable);
         sensor->status.bpc = enable;
     }
 
@@ -446,7 +448,7 @@ static int set_wpc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set wpc to: %d", enable);
+        printf("Set wpc to: %d", enable);
         sensor->status.wpc = enable;
     }
 
@@ -459,7 +461,7 @@ static int set_raw_gma_dsp(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set raw_gma to: %d", enable);
+        printf("Set raw_gma to: %d", enable);
         sensor->status.raw_gma = enable;
     }
 
@@ -471,7 +473,7 @@ static int set_lenc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set lenc to: %d", enable);
+        printf("Set lenc to: %d", enable);
         sensor->status.lenc = enable;
     }
 
@@ -480,45 +482,45 @@ static int set_lenc_dsp(sensor_t *sensor, int enable)
 
 static int get_agc_gain(sensor_t *sensor)
 {
-    ESP_LOGD(TAG, "get_agc_gain can not be configured at present");
+    printf("get_agc_gain can not be configured at present");
     return 0;
 }
 
 //real gain
 static int set_agc_gain(sensor_t *sensor, int gain)
 {
-    ESP_LOGD(TAG, "set_agc_gain can not be configured at present");
-    // ESP_LOGD(TAG, "GAIN = %d\n", gain);
+    printf("set_agc_gain can not be configured at present");
+    // printf(TAG, "GAIN = %d\n", gain);
     int cnt = gain / 2;
 
     switch (cnt) {
         case 0:
-            ESP_LOGD(TAG, "set_agc_gain: 1x");
+            printf("set_agc_gain: 1x");
             write_reg(sensor->slv_addr, 0X301D, 0X00);
             break;
 
         case 1:
-            ESP_LOGD(TAG,"set_agc_gain: 2x");
+            printf("set_agc_gain: 2x");
             write_reg(sensor->slv_addr, 0X301D, 0X0F);
             break;
 
         case 2:
-            ESP_LOGD(TAG,"set_agc_gain: 4x");
+            printf("set_agc_gain: 4x");
             write_reg(sensor->slv_addr, 0X301D, 0X2F);
             break;
 
         case 3:
-            ESP_LOGD(TAG,"set_agc_gain: 6x");
+            printf("set_agc_gain: 6x");
             write_reg(sensor->slv_addr, 0X301D, 0X37);
             break;
 
         case 4:
-            ESP_LOGD(TAG,"set_agc_gain: 8x");
+            printf("set_agc_gain: 8x");
             write_reg(sensor->slv_addr, 0X301D, 0X3F);
             break;
 
         default:
-            ESP_LOGD(TAG,"fail set_agc_gain");
+            printf("fail set_agc_gain");
             break;
     }
 
@@ -527,20 +529,20 @@ static int set_agc_gain(sensor_t *sensor, int gain)
 
 static int get_aec_value(sensor_t *sensor)
 {
-    ESP_LOGD(TAG, "get_aec_value can not be configured at present");
+    printf("get_aec_value can not be configured at present");
     return 0;
 }
 
 static int set_aec_value(sensor_t *sensor, int value)
 {
-    ESP_LOGD(TAG, "set_aec_value can not be configured at present");
+    printf("set_aec_value can not be configured at present");
     int ret = 0;
-    // ESP_LOGD(TAG, " set_aec_value to: %d", value);
+    // printf(TAG, " set_aec_value to: %d", value);
     ret = write_reg_bits(sensor->slv_addr, 0x3012, 0x00, (value >> 8) & 0xff);
     ret = write_reg_bits(sensor->slv_addr, 0x3013, 0x01, value & 0xff);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, " set_aec_value to: %d", value);
+        printf(" set_aec_value to: %d", value);
         // sensor->status.aec = enable;
     }
 
@@ -549,7 +551,7 @@ static int set_aec_value(sensor_t *sensor, int value)
 
 static int set_ae_level(sensor_t *sensor, int level)
 {
-    ESP_LOGD(TAG, "set_ae_level can not be configured at present");
+    printf("set_ae_level can not be configured at present");
     int ret = 0;
 
     if (level < 0) {
@@ -563,7 +565,7 @@ static int set_ae_level(sensor_t *sensor, int level)
     }
 
     if (ret) {
-        ESP_LOGE(TAG, " fail to set ae level: %d", ret);
+        printf(" fail to set ae level: %d", ret);
     }
 
     return 0;
@@ -623,7 +625,7 @@ static int set_wb_mode(sensor_t *sensor, int mode)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set wb_mode to: %d", mode);
+        printf("Set wb_mode to: %d", mode);
         sensor->status.wb_mode = mode;
     }
 
@@ -640,7 +642,7 @@ static int set_awb_gain_dsp(sensor_t *sensor, int enable)
 
     if (ret == 0) {
         sensor->status.wb_mode = old_mode;
-        ESP_LOGD(TAG, "Set awb_gain to: %d", enable);
+        printf("Set awb_gain to: %d", enable);
         sensor->status.awb_gain = enable;
     }
 
@@ -662,7 +664,7 @@ static int set_special_effect(sensor_t *sensor, int effect)
            || write_reg(sensor->slv_addr, 0x3060, regs[3]);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set special_effect to: %d", effect);
+        printf("Set special_effect to: %d", effect);
         sensor->status.special_effect = effect;
     }
 
@@ -710,7 +712,7 @@ static int set_brightness(sensor_t *sensor, int level)
     ret = write_reg(sensor->slv_addr, 0x32F2, value);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set brightness to: %d", level);
+        printf("Set brightness to: %d", level);
         sensor->status.brightness = level;
     }
 
@@ -768,7 +770,7 @@ static int set_contrast(sensor_t *sensor, int level)
     ret = write_reg(sensor->slv_addr, 0x3060, 0x01);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set contrast to: %d", level);
+        printf("Set contrast to: %d", level);
         sensor->status.contrast = level;
     }
 
@@ -793,7 +795,7 @@ static int set_saturation(sensor_t *sensor, int level)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set saturation to: %d", level);
+        printf("Set saturation to: %d", level);
         sensor->status.saturation = level;
     }
 
@@ -822,7 +824,7 @@ static int set_sharpness(sensor_t *sensor, int level)
           || write_reg(sensor->slv_addr, 0x530c, 0x06);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set sharpness to: %d", level);
+        printf("Set sharpness to: %d", level);
         sensor->status.sharpness = level;
     }
 
@@ -831,7 +833,7 @@ static int set_sharpness(sensor_t *sensor, int level)
 
 static int set_gainceiling(sensor_t *sensor, gainceiling_t level)
 {
-    ESP_LOGD(TAG, "set_gainceiling can not be configured at present");
+    printf("set_gainceiling can not be configured at present");
     return 0;
 }
 
@@ -843,7 +845,7 @@ static int get_denoise(sensor_t *sensor)
 
 static int set_denoise(sensor_t *sensor, int level)
 {
-    ESP_LOGD(TAG, "set_denoise can not be configured at present");
+    printf("set_denoise can not be configured at present");
     return 0;
 }
 
@@ -944,7 +946,7 @@ static int set_xclk(sensor_t *sensor, int timer, int xclk)
     int ret = 0;
     if (xclk > 10)
     {
-        ESP_LOGE(TAG, "only XCLK under 10MHz is supported, and XCLK is now set to 10M");
+        printf("only XCLK under 10MHz is supported, and XCLK is now set to 10M");
         xclk = 10;
     }
     sensor->xclk_freq_hz = xclk * 1000000U;
@@ -1021,3 +1023,5 @@ int NT99141_init(sensor_t *sensor)
     sensor->set_xclk = set_xclk;
     return 0;
 }
+
+#endif
