@@ -9,10 +9,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "STM32FreeRTOS.h"
 #include "driver/include/sccb.h"
 #include "sensors/include/ov2640.h"
 #include "sensors/include/ov2640_regs.h"
 #include "sensors/include/ov2640_settings.h"
+#include "driver/include/xclk.h"
 
 
 static volatile ov2640_bank_t reg_bank = BANK_MAX;
@@ -31,7 +33,7 @@ static int write_regs(sensor_t *sensor, const uint8_t (*regs)[2])
     int i=0, res = 0;
     while (regs[i][0]) {
         if (regs[i][0] == BANK_SEL) {
-            res = set_bank(sensor, regs[i][1]);
+            res = set_bank(sensor, (ov2640_bank_t)regs[i][1]);
         } else {
             res = SCCB_Write(sensor->slv_addr, regs[i][0], regs[i][1]);
         }
@@ -57,7 +59,7 @@ static int set_reg_bits(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t off
     int ret = 0;
     uint8_t c_value, new_value;
 
-    ret = set_bank(sensor, bank);
+    ret = set_bank(sensor, (ov2640_bank_t)bank);
     if(ret) {
         return ret;
     }
@@ -77,7 +79,7 @@ static int read_reg(sensor_t *sensor, ov2640_bank_t bank, uint8_t reg)
 
 static uint8_t get_reg_bits(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t offset, uint8_t mask)
 {
-    return (read_reg(sensor, bank, reg) >> offset) & mask;
+    return (read_reg(sensor, (ov2640_bank_t)bank, reg) >> offset) & mask;
 }
 
 static int write_reg_bits(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t mask, int enable)
@@ -93,7 +95,7 @@ static int reset(sensor_t *sensor)
 {
     int ret = 0;
     WRITE_REG_OR_RETURN(BANK_SENSOR, COM7, COM7_SRST);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    delay(10);
     WRITE_REGS_OR_RETURN(ov2640_settings_cif);
     return ret;
 }
@@ -119,7 +121,7 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
         break;
     }
     if(!ret) {
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        delay(10);
     }
 
     return ret;
@@ -178,7 +180,8 @@ static int set_window(sensor_t *sensor, ov2640_sensor_mode_t mode, int offset_x,
     WRITE_REG_OR_RETURN(BANK_DSP, R_DVP_SP, c.pclk);
     WRITE_REG_OR_RETURN(BANK_DSP, R_BYPASS, R_BYPASS_DSP_EN);
 
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    // vTaskDelay(10 / portTICK_PERIOD_MS);
+    delay(10);
     //required when changing resolution
     set_pixformat(sensor, sensor->pixformat);
 
@@ -443,7 +446,7 @@ static int set_denoise(sensor_t *sensor, int level)
 
 static int get_reg(sensor_t *sensor, int reg, int mask)
 {
-    int ret = read_reg(sensor, (reg >> 8) & 0x01, reg & 0xFF);
+    int ret = read_reg(sensor, (ov2640_bank_t)((reg >> 8) & 0x01), reg & 0xFF);
     if(ret > 0){
         ret &= mask;
     }
@@ -453,12 +456,12 @@ static int get_reg(sensor_t *sensor, int reg, int mask)
 static int set_reg(sensor_t *sensor, int reg, int mask, int value)
 {
     int ret = 0;
-    ret = read_reg(sensor, (reg >> 8) & 0x01, reg & 0xFF);
+    ret = read_reg(sensor,(ov2640_bank_t)((reg >> 8) & 0x01), reg & 0xFF);
     if(ret < 0){
         return ret;
     }
     value = (ret & ~mask) | (value & mask);
-    ret = write_reg(sensor, (reg >> 8) & 0x01, reg & 0xFF, value);
+    ret = write_reg(sensor,(ov2640_bank_t)((reg >> 8) & 0x01), reg & 0xFF, value);
     return ret;
 }
 
@@ -472,14 +475,14 @@ static int _set_pll(sensor_t *sensor, int bypass, int multiplier, int sys_div, i
     return -1;
 }
 
-uint8_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
-static int set_xclk(sensor_t *sensor, int timer, int xclk)
-{
-    int ret = 0;
-    sensor->xclk_freq_hz = xclk * 1000000U;
-    ret = xclk_timer_conf(timer, sensor->xclk_freq_hz);
-    return ret;
-}
+// uint8_t xclk_timer_conf(int ledc_timer, int xclk_freq_hz);
+// static int set_xclk(sensor_t *sensor, int timer, int xclk)
+// {
+//     int ret = 0;
+//     sensor->xclk_freq_hz = xclk * 1000000U;
+//     ret = xclk_timer_conf(timer, sensor->xclk_freq_hz);
+//     return ret;
+// }
 
 static int init_status(sensor_t *sensor){
     sensor->status.brightness = 0;
@@ -525,6 +528,7 @@ static int init_status(sensor_t *sensor){
 
 int ov2640_init(sensor_t *sensor)
 {
+    printf("into ov2640_init function\n");
     sensor->reset = reset;
     sensor->init_status = init_status;
     sensor->set_pixformat = set_pixformat;
@@ -566,7 +570,7 @@ int ov2640_init(sensor_t *sensor)
     sensor->set_reg = set_reg;
     sensor->set_res_raw = set_res_raw;
     sensor->set_pll = _set_pll;
-    sensor->set_xclk = set_xclk;
-    ESP_LOGD(TAG, "OV2640 Attached");
+    // sensor->set_xclk = set_xclk;
+    printf("OV2640 Attached");
     return 0;
 }
