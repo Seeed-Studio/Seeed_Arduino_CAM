@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#if 0
 #include "conversions/include/arduino_jpg_decode.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 4 // IDF 4+
@@ -75,7 +77,7 @@ static uint32_t _jpg_read(JDEC *decoder, uint8_t *buf, uint32_t len)
     if (len) {
         len = jpeg->reader(jpeg->arg, jpeg->index, buf, len);
         if (!len) {
-            ESP_LOGE(TAG, "Read Fail at %u/%u", jpeg->index, jpeg->len);
+            printf(TAG, "Read Fail at %u/%u", jpeg->index, jpeg->len);
         }
         jpeg->index += len;
     }
@@ -97,7 +99,7 @@ arduino_err_t arduino_jpg_decode(size_t len, jpg_scale_t scale, jpg_reader_cb re
 
     JRESULT jres = jd_prepare(&decoder, _jpg_read, work, 3100, &jpeg);
     if(jres != JDR_OK){
-        ESP_LOGE(TAG, "JPG Header Parse Failed! %s", jd_errors[jres]);
+        printf(TAG, "JPG Header Parse Failed! %s", jd_errors[jres]);
         return ESP_FAIL;
     }
 
@@ -112,7 +114,7 @@ arduino_err_t arduino_jpg_decode(size_t len, jpg_scale_t scale, jpg_reader_cb re
     writer(arg, output_width, output_height, output_width, output_height, NULL);
 
     if (jres != JDR_OK) {
-        ESP_LOGE(TAG, "JPG Decompression Failed! %s", jd_errors[jres]);
+        printf(TAG, "JPG Decompression Failed! %s", jd_errors[jres]);
         return ESP_FAIL;
     }
     //check if all data has been consumed.
@@ -123,3 +125,4 @@ arduino_err_t arduino_jpg_decode(size_t len, jpg_scale_t scale, jpg_reader_cb re
     return ESP_OK;
 }
 
+#endif

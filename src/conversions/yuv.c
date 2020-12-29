@@ -283,6 +283,7 @@ static const yuv_table_row yuv_table[256] = {
 
 #define YUYV_CONSTRAIN(v) ((v)<0)?0:(((v)>255)?255:(v))
 
+#if 0
 void IRAM_ATTR yuv2rgb(uint8_t y, uint8_t u, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
 {
     int16_t ri, gi, bi;
@@ -295,3 +296,4 @@ void IRAM_ATTR yuv2rgb(uint8_t y, uint8_t u, uint8_t v, uint8_t *r, uint8_t *g, 
     *g = YUYV_CONSTRAIN(gi);
     *b = YUYV_CONSTRAIN(bi);
 }
+#endif

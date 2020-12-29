@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#if 0
 #include <stddef.h>
 #include <string.h>
 #include "conversions/include/img_converters.h"
@@ -240,7 +241,7 @@ bool fmt2bmp(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixf
     size_t out_size = (pix_count * 3) + BMP_HEADER_LEN;
     uint8_t * out_buf = (uint8_t *)_malloc(out_size);
     if(!out_buf) {
-        ESP_LOGE(TAG, "_malloc failed! %u", out_size);
+        printf(TAG, "_malloc failed! %u", out_size);
         return false;
     }
 
@@ -318,3 +319,6 @@ bool frame2bmp(camera_fb_t * fb, uint8_t ** out, size_t * out_len)
 {
     return fmt2bmp(fb->buf, fb->len, fb->width, fb->height, fb->format, out, out_len);
 }
+
+
+#endif

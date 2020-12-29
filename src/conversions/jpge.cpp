@@ -8,6 +8,7 @@
 //                       Code tweaks to fix VS2008 static code analysis warnings (all looked harmless).
 //                       Code review revealed method load_block_16_8_8() (used for the non-default H2V1 sampling mode to downsample chroma) somehow didn't get the rounding factor fix from v1.02.
 
+#if 0
 #include "conversions/include/jpge.h"
 
 #include <stdint.h>
@@ -720,3 +721,5 @@ namespace jpge {
     }
 
 } // namespace jpge
+
+#endif
