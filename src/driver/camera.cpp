@@ -351,49 +351,11 @@ static void dma_desc_deinit()
 
 static void hw_gpio_init(const camera_config_t* config)
 {
-#if 0
-    Configure input GPIOs
-    const gpio_num_t pins[] = {
-        config->pin_d7,
-        config->pin_d6,
-        config->pin_d5,
-        config->pin_d4,
-        config->pin_d3,
-        config->pin_d2,
-        config->pin_d1,
-        config->pin_d0,
-        config->pin_vsync,
-        config->pin_href,
-        config->pin_pclk
-    };
-    gpio_config_t conf = {
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = 0LL
-    };
-    for (int i = 0; i < sizeof(pins) / sizeof(gpio_num_t); ++i) {
-        if (rtc_gpio_is_valid_gpio(pins[i])) {
-            rtc_gpio_deinit(pins[i]);
-        }
-        conf.pin_bit_mask |= 1LL << pins[i];
-    }
-    gpio_config(&conf);
-#endif
     __HAL_RCC_GPIOE_CLK_ENABLE();
     __HAL_RCC_GPIOG_CLK_ENABLE();
-    // __HAL_RCC_GPIOA_CLK_ENABLE();
-    // __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOH_CLK_ENABLE();
-    // __HAL_RCC_GPIOG_CLK_ENABLE();
-    // __HAL_RCC_GPIOG_CLK_ENABLE();
-    // __HAL_RCC_GPIOG_CLK_ENABLE();
-    // __HAL_RCC_GPIOE_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
-    // __HAL_RCC_GPIOE_CLK_ENABLE();
-    // __HAL_RCC_GPIOE_CLK_ENABLE();
 
     PinName p = digitalPinToPinName(config->pin_vsync);
     pin_function(p, STM_PIN_DATA(STM_MODE_AF_PP,GPIO_PULLUP, 13));
@@ -401,7 +363,7 @@ static void hw_gpio_init(const camera_config_t* config)
     p = digitalPinToPinName(config->pin_pwdn);
     pin_function(p, STM_PIN_DATA(STM_MODE_OUTPUT_PP,GPIO_NOPULL, 13));
 
-    const gpio_num_t pins[] = {
+    const int pins[] = {
         config->pin_d7,
         config->pin_d6,
         config->pin_d5,
@@ -414,10 +376,11 @@ static void hw_gpio_init(const camera_config_t* config)
         config->pin_pclk
     };
 
-    for (int i = 0; i < sizeof(pins) / sizeof(gpio_num_t); ++i) {
+    for (int i = 0; i < sizeof(pins) / sizeof(int); ++i) {
         PinName x = digitalPinToPinName(pins[i]);
         pin_function(x, STM_PIN_DATA(STM_MODE_AF_PP, GPIO_NOPULL, 13));
     }
+ 
 }
 
 static void dcmi_init()
