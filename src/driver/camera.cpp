@@ -164,27 +164,27 @@ static int skip_frame()
     if (s_state == NULL) {
         return -1;
     }
-    int64_t st_t = esp_timer_get_time();
-    while (_gpio_get_level(s_state->config.pin_vsync) == 0) {
-        if((esp_timer_get_time() - st_t) > 1000000LL){
+    unsigned long st_t = millis();
+    while (digitalRead(s_state->config.pin_vsync) == 0) {
+        if((millis() - st_t) > 1000000LL){
             goto timeout;
         }
     }
-    while (_gpio_get_level(s_state->config.pin_vsync) != 0) {
-        if((esp_timer_get_time() - st_t) > 1000000LL){
+    while (digitalRead(s_state->config.pin_vsync) != 0) {
+        if((millis() - st_t) > 1000000LL){
             goto timeout;
         }
     }
-    while (_gpio_get_level(s_state->config.pin_vsync) == 0) {
-        if((esp_timer_get_time() - st_t) > 1000000LL){
+
+    while (digitalRead(s_state->config.pin_vsync) == 0) {
+        if((millis() - st_t) > 1000000LL){
             goto timeout;
         }
     }
     return 0;
-
 timeout:
     ESP_LOGE(TAG, "Timeout waiting for VSYNC");
-    return -1;
+    return 1;
 }
 
 static void camera_fb_deinit()
