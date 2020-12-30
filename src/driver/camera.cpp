@@ -920,6 +920,30 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
     return ESP_OK;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+void DMA2_Stream1_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
+}
+
+void DCMI_PSSI_IRQHandler(void)
+{
+    HAL_DCMI_IRQHandler(&DCMI_Handle);
+}
+#ifdef __cplusplus
+}
+#endif
+
+void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef * hdcmi)
+{
+    printf("into HAL DCMI VsyncEventCallback\n");
+    // vsync_isr(void);
+ 
+}
+
+
 uint8_t camera_init(const camera_config_t* config)
 {
     if (!s_state) {
@@ -1119,44 +1143,6 @@ uint8_t camera_init(const camera_config_t* config)
         err = ESP_ERR_NO_MEM;
         goto fail;
     }
-#if 0
-    TODO: to be removed?
-    vsync_intr_disable();
-    err = gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
-    if (err != ESP_OK) {
-    	if (err != ESP_ERR_INVALID_STATE) {
-    		ESP_LOGE(TAG, "gpio_install_isr_service failed (%x)", err);
-        	goto fail;
-    	}
-    	else {
-    		ESP_LOGW(TAG, "gpio_install_isr_service already installed");
-    	}
-    }
-    err = gpio_isr_handler_add(s_state->config.pin_vsync, &vsync_isr, NULL);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "vsync_isr_handler_add failed (%x)", err);
-        goto fail;
-    }
-#endif
-    void DMA2_Stream1_IRQHandler(void)
-    {
-        HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
-    }
-
-    void DCMI_PSSI_IRQHandler(void)
-    {
-        HAL_DCMI_IRQHandler(&DCMI_Handle);
-    }
-
-    void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef * hdcmi)
-    {
-        bool need_yield = false;
-        signal_dma_buf_received(&need_yield);
-        if (need_yield) {
-        portYIELD_FROM_ISR();
-        }
-    }
-
     s_state->sensor.status.framesize = frame_size;
     s_state->sensor.pixformat = pix_format;
     ESP_LOGD(TAG, "Setting frame size to %dx%d", s_state->width, s_state->height);
