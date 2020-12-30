@@ -405,6 +405,11 @@ static void dcmi_init()
 	DCMI_Handle.Init.ExtendedDataMode = DCMI_EXTEND_DATA_8B;
 	HAL_DCMI_Init(&DCMI_Handle);
 
+    if (HAL_DCMI_GetState(&DCMI_Handle) == 1)
+	{
+		printf("init dcmi ok\n");
+	}
+
 	HAL_NVIC_SetPriority(DCMI_IRQn, 0 ,5);
 	HAL_NVIC_EnableIRQ(DCMI_IRQn);
 
