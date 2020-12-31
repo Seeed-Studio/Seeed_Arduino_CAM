@@ -445,37 +445,13 @@ static void IRAM_ATTR signal_dma_buf_received(bool* need_yield)
 }
 
 
-#if 0
+#if 1
 static void IRAM_ATTR vsync_isr(void* arg)
 {
-    GPIO.status1_w1tc.val = GPIO.status1.val;
-    GPIO.status_w1tc = GPIO.status;
-    bool need_yield = false;
-    //if vsync is low and we have received some data, frame is done
-    if (_gpio_get_level(s_state->config.pin_vsync) == 0) {
-        if(s_state->dma_received_count > 0) {
-            signal_dma_buf_received(&need_yield);
-            //ets_printf("end_vsync\n");
-            if(s_state->dma_filtered_count > 1 || s_state->fb->bad || s_state->config.fb_count > 1) {
-                i2s_stop(&need_yield);
-            }
-            //ets_printf("vs\n");
-        }
-        if(s_state->config.fb_count > 1 || s_state->dma_filtered_count < 2) {
-            I2S0.conf.rx_start = 0;
-            I2S0.in_link.start = 0;
-            I2S0.int_clr.val = I2S0.int_raw.val;
-            i2s_conf_reset();
-            s_state->dma_desc_cur = (s_state->dma_desc_cur + 1) % s_state->dma_desc_count;
-            //I2S0.rx_eof_num = s_state->dma_sample_count;
-            I2S0.in_link.addr = (uint32_t) &s_state->dma_desc[s_state->dma_desc_cur];
-            I2S0.in_link.start = 1;
-            I2S0.conf.rx_start = 1;
-            s_state->dma_received_count = 0;
-        }
-    }
-    if (need_yield) {
-        portYIELD_FROM_ISR();
+    printf("into vsync isr function\n");
+    for (int i = 0; i < s_state->dma_desc->length; i++)
+    {
+        printf("dma buf received = %d\n",s_state->dma_desc->buf[i]);
     }
 }
 #endif
