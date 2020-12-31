@@ -996,7 +996,7 @@ void DCMI_PSSI_IRQHandler(void)
 void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef * hdcmi)
 {
     printf("into HAL DCMI VsyncEventCallback\n");
-    // vsync_isr(void);
+    vsync_isr();
  
 }
 
@@ -1148,21 +1148,6 @@ uint8_t camera_init(const camera_config_t* config)
              s_state->fb_size, s_state->sampling_mode,
              s_state->width, s_state->height);
 
-    dcmi_init();
-
-    err = dma_desc_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize I2S and DMA");
-        goto fail;
-    }
-
-    //s_state->fb_size = 75 * 1024;
-    err = camera_fb_init(s_state->config.fb_count);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to allocate frame buffer");
-        goto fail;
-    }
-
     s_state->data_ready = xQueueCreate(16, sizeof(size_t));
     if (s_state->data_ready == NULL) {
         ESP_LOGE(TAG, "Failed to dma queue");
@@ -1226,6 +1211,22 @@ uint8_t camera_init(const camera_config_t* config)
         (*s_state->sensor.set_quality)(&s_state->sensor, config->jpeg_quality);
     }
     s_state->sensor.init_status(&s_state->sensor);
+
+    dcmi_init();
+
+    err = dma_desc_init();
+    if (err != ESP_OK) {
+        printf("Failed to initialize I2S and DMA");
+        goto fail;
+    }
+
+    //s_state->fb_size = 75 * 1024;
+    err = camera_fb_init(s_state->config.fb_count);
+    if (err != ESP_OK) {
+        printf("Failed to allocate frame buffer");
+        goto fail;
+    }
+    printf("camera init end\n");
     return ESP_OK;
 
 fail:
