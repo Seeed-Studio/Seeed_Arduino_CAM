@@ -24,7 +24,7 @@
 
 
 #if CONFIG_OV2640_SUPPORT
-#include "ov2640.h"
+#include "sensors/include/ov2640.h"
 #endif
 #if CONFIG_OV7725_SUPPORT
 #include "ov7725.h"
@@ -107,6 +107,7 @@ typedef struct {
     size_t dma_buf_width;
     size_t dma_sample_count;
 
+    lldesc_t *dma_desc;
     dma_elem_t **dma_buf;
     size_t dma_desc_count;
     size_t dma_desc_cur;
@@ -123,7 +124,7 @@ typedef struct {
 camera_state_t* s_state = NULL;
 
 
-static void IRAM_ATTR vsync_isr(void* arg);
+static void  vsync_isr();
 static uint8_t dma_desc_init();
 static void dma_desc_deinit();
 static void dma_filter_task(void *pvParameters);
@@ -219,7 +220,7 @@ static uint8_t camera_fb_init(size_t count)
         }
         memset(_fb2, 0, sizeof(camera_fb_int_t));
         _fb2->size = s_state->fb_size;
-        _fb2->buf = (uint8_t*) calloc(_fb2->size, 1);
+        _fb2->buf = (uint8_t*) malloc(_fb2->size);
         if(!_fb2->buf) {
             ESP_LOGI(TAG, "Allocating %d KB frame buffer in PSRAM", s_state->fb_size/1024);
             _fb2->buf = (uint8_t*) heap_caps_calloc(_fb2->size, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
