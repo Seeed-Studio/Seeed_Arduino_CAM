@@ -37,6 +37,7 @@
 
 
 #include "seeed_camera.h"
+#define ESP_OK 0
 
 // WROVER-KIT PIN Map
 #define CAM_PIN_PWDN 24  //power down is not used
@@ -89,27 +90,31 @@ static camera_config_t camera_config = {
     .fb_count = 1       //if more than one, i2s runs in continuous mode. Use only with JPEG
 };
 
-static int8_t init_camera()
+static void init_camera()
 {
     //initialize the camera
     uint8_t err = arduino_camera_init(&camera_config);
     if (err != ESP_OK)
     {
         printf("Camera Init Failed");
-        return err;
     }
-
-    return ESP_OK;
 }
 
 void setup()
 {
-    init_camera();    
+    portBASE_TYPE s1;
+    s1 = xTaskCreate(init_camera, NULL, 4096, NULL, 10,NULL);
+    if (s1 != pdPASS) {
+        printf("Creation problem\n");
+        while(1);
+    }
+    vTaskStartScheduler();
+    while(1);
 }
 
 void loop() {
         printf("Taking picture...");
-        camera_fb_t *pic = esp_camera_fb_get();
+        camera_fb_t *pic = arduino_camera_fb_get();
         // use pic->buf to access the image
         printf("Picture taken! Its size was: %zu bytes", pic->len);
         delay(500);
