@@ -123,12 +123,53 @@ typedef struct {
 
 camera_state_t* s_state = NULL;
 
-
-static void  vsync_isr();
+static void DMA_Config();
+static void signal_dma_buf_received(bool *need_yield);
 static uint8_t dma_desc_init();
 static void dma_desc_deinit();
 static void dma_filter_task(void *pvParameters);
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    void DMA2_Stream1_IRQHandler(void)
+    {
+        HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
+        // signal_dma_buf_received(&need_yield);
+    }
+
+    void DCMI_PSSI_IRQHandler(void)
+    {
+        HAL_DCMI_IRQHandler(&DCMI_Handle);
+    }
+
+    void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef *hdcmi)
+    {
+        BaseType_t xHigherPriorityTaskWoken;
+        #if 0
+        printf("+++++++++++++++++++++++++++\n");
+        printf("+++++++++++++++++++++++++++\n");
+        for (int i = 0; i < 18432; i++)
+        {
+            if (i % 48 == 0)
+            {
+                printf("\n");
+            }
+            printf("%02X ", s_state->dma_buffer[i]);
+        }
+        printf("---------------------------\n");
+        printf("---------------------------\n");
+        printf("---------------------------\n");
+        #endif
+        bool need_yield = false;
+        DMA_Config();
+        signal_dma_buf_received(&need_yield);
+
+    }
+#ifdef __cplusplus
+}
+#endif
 
 static int _gpio_get_level(gpio_num_t gpio_num)
 {
@@ -252,6 +293,7 @@ static uint8_t dma_desc_init()
     if (s_state->dma_buffer == nullptr)
     {
         printf("disbuf malloc failed\n");
+        return -1;
     }
     return 0; 
 }
@@ -708,30 +750,6 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
 
     return ESP_OK;
 }
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-void DMA2_Stream1_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
-}
-
-void DCMI_PSSI_IRQHandler(void)
-{
-    HAL_DCMI_IRQHandler(&DCMI_Handle);
-}
-#ifdef __cplusplus
-}
-#endif
-
-void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef * hdcmi)
-{
-    printf("into HAL DCMI VsyncEventCallback\n");
-    vsync_isr();
- 
-}
-
 
 uint8_t camera_init(const camera_config_t* config)
 {
