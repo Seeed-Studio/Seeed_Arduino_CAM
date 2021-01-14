@@ -9,6 +9,8 @@
 
 #include "driver/include/sccb.h"
 
+#define LITTLETOBIG(x) ((x << 8) | (x >> 8))
+
 int SCCB_Init(int pin_sda, int pin_scl)
 {
     Wire.setSCL((uint32_t)pin_scl);
@@ -19,7 +21,47 @@ int SCCB_Init(int pin_sda, int pin_scl)
 
 uint8_t SCCB_Probe()
 {
-    return 0x30;
+    uint8_t error, address;
+    int nDevices;
+    nDevices = 0;
+    for (address = 1; address < 127; address++)
+    {
+        // The i2c_scanner uses the return value of
+        // the Write.endTransmisstion to see if
+        // a device did acknowledge to the address.
+
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+
+        if (error == 0)
+        {
+             
+            printf("I2C device found at address 0x%x\n",address);
+
+            nDevices++;
+            switch (address)
+            {
+            case 0x30:
+                break;
+            case 0x2a:
+                break;
+            case 0x3c:
+                break;
+            default:
+                continue;
+            }
+            return address;
+        }
+        else if (error == 4)
+        {
+            printf("Unknown error at address 0x%x\n",address);
+        }
+    }
+    if (nDevices == 0)
+        printf("No I2C devices found");
+    else
+        printf("done");
+    return 0;
 }
 
 uint8_t SCCB_Read(uint8_t slv_addr, uint8_t reg)
