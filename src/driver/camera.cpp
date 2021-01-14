@@ -409,24 +409,28 @@ static void DMA_Config()
 
 static void signal_dma_buf_received(bool* need_yield)
 {
-    size_t dma_desc_filled = s_state->dma_desc_cur;
-    s_state->dma_desc_cur = (dma_desc_filled + 1) % s_state->dma_desc_count;
-    s_state->dma_received_count++;
-    if(!s_state->fb->ref && s_state->fb->bad){
+    uint8_t *dma_desc_filled;
+    dma_desc_filled = s_state->dma_buffer;
+    if (!s_state->fb->ref && s_state->fb->bad)
+    {
         *need_yield = false;
         return;
     }
     BaseType_t higher_priority_task_woken;
-    BaseType_t ret = xQueueSendFromISR(s_state->data_ready, &dma_desc_filled, &higher_priority_task_woken);
-    if (ret != pdTRUE) {
-        if(!s_state->fb->ref) {
+    if (s_state->data_ready == NULL)
+    {
+        return;
+    }
+    BaseType_t ret = xQueueSendFromISR(s_state->data_ready,dma_desc_filled, &higher_priority_task_woken);
+    if (ret != pdTRUE)
+    {
+        if (!s_state->fb->ref)
+        {
             s_state->fb->bad = 1;
         }
-        //ESP_EARLY_LOGW(TAG, "qsf:%d", s_state->dma_received_count);
-        //ets_printf("qsf:%d\n", s_state->dma_received_count);
-        //ets_printf("qovf\n");
     }
     *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
+    portYIELD_FROM_ISR();
 }
 
 
