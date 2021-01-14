@@ -824,32 +824,15 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
       SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);
     }
 	
-    if(config->pin_pwdn >= 0) {
-
-        digitalWrite(config->pin_pwdn, 1);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-        digitalWrite(config->pin_pwdn, 0);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-
-    if(config->pin_reset >= 0) {
-        digitalWrite(config->pin_reset, 0);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-        digitalWrite(config->pin_reset, 1);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-
     printf("Searching for camera address\n");
     vTaskDelay(10 / portTICK_PERIOD_MS);
     uint8_t slv_addr = SCCB_Probe();
     if (slv_addr == 0) {
         *out_camera_model = CAMERA_NONE;
-        camera_disable_out_clock();
         return ESP_ERR_CAMERA_NOT_DETECTED;
     }
     
-    //slv_addr = 0x30;
-    slv_addr = 0x30;
+    // slv_addr = 0x30;
     sensor_id_t* id = &s_state->sensor.id;
 
 #if CONFIG_OV2640_SUPPORT
@@ -943,7 +926,6 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
     default:
         id->PID = 0;
         *out_camera_model = CAMERA_UNKNOWN;
-        camera_disable_out_clock();
         printf("Detected camera not supported.\n");
         return ESP_ERR_CAMERA_NOT_SUPPORTED;
     }
