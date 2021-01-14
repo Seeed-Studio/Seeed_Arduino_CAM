@@ -128,17 +128,6 @@ static void  vsync_isr();
 static uint8_t dma_desc_init();
 static void dma_desc_deinit();
 static void dma_filter_task(void *pvParameters);
-static void dma_filter_grayscale(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
-static void dma_filter_grayscale_highspeed(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
-static void dma_filter_yuyv(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
-static void dma_filter_yuyv_highspeed(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
-static void dma_filter_jpeg(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst);
-
-static bool is_hs_mode()
-{
-    return s_state->config.xclk_freq_hz > 10000000;
-}
-
 
 
 static int IRAM_ATTR _gpio_get_level(gpio_num_t gpio_num)
@@ -629,175 +618,6 @@ static void IRAM_ATTR dma_filter_task(void *pvParameters)
     }
 }
 
-static void IRAM_ATTR dma_filter_jpeg(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 4;
-    // manually unrolling 4 iterations of the loop here
-    for (size_t i = 0; i < end; ++i) {
-        dst[0] = src[0].sample1;
-        dst[1] = src[1].sample1;
-        dst[2] = src[2].sample1;
-        dst[3] = src[3].sample1;
-        src += 4;
-        dst += 4;
-    }
-}
-
-static void IRAM_ATTR dma_filter_grayscale(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 4;
-    for (size_t i = 0; i < end; ++i) {
-        // manually unrolling 4 iterations of the loop here
-        dst[0] = src[0].sample1;
-        dst[1] = src[1].sample1;
-        dst[2] = src[2].sample1;
-        dst[3] = src[3].sample1;
-        src += 4;
-        dst += 4;
-    }
-}
-
-static void IRAM_ATTR dma_filter_grayscale_highspeed(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 8;
-    for (size_t i = 0; i < end; ++i) {
-        // manually unrolling 4 iterations of the loop here
-        dst[0] = src[0].sample1;
-        dst[1] = src[2].sample1;
-        dst[2] = src[4].sample1;
-        dst[3] = src[6].sample1;
-        src += 8;
-        dst += 4;
-    }
-    // the final sample of a line in SM_0A0B_0B0C sampling mode needs special handling
-    if ((dma_desc->length & 0x7) != 0) {
-        dst[0] = src[0].sample1;
-        dst[1] = src[2].sample1;
-    }
-}
-
-static void IRAM_ATTR dma_filter_yuyv(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 4;
-    for (size_t i = 0; i < end; ++i) {
-        dst[0] = src[0].sample1;//y0
-        dst[1] = src[0].sample2;//u
-        dst[2] = src[1].sample1;//y1
-        dst[3] = src[1].sample2;//v
-
-        dst[4] = src[2].sample1;//y0
-        dst[5] = src[2].sample2;//u
-        dst[6] = src[3].sample1;//y1
-        dst[7] = src[3].sample2;//v
-        src += 4;
-        dst += 8;
-    }
-}
-
-static void IRAM_ATTR dma_filter_yuyv_highspeed(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 8;
-    for (size_t i = 0; i < end; ++i) {
-        dst[0] = src[0].sample1;//y0
-        dst[1] = src[1].sample1;//u
-        dst[2] = src[2].sample1;//y1
-        dst[3] = src[3].sample1;//v
-
-        dst[4] = src[4].sample1;//y0
-        dst[5] = src[5].sample1;//u
-        dst[6] = src[6].sample1;//y1
-        dst[7] = src[7].sample1;//v
-        src += 8;
-        dst += 8;
-    }
-    if ((dma_desc->length & 0x7) != 0) {
-        dst[0] = src[0].sample1;//y0
-        dst[1] = src[1].sample1;//u
-        dst[2] = src[2].sample1;//y1
-        dst[3] = src[2].sample2;//v
-    }
-}
-
-static void IRAM_ATTR dma_filter_rgb888(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 4;
-    uint8_t lb, hb;
-    for (size_t i = 0; i < end; ++i) {
-        hb = src[0].sample1;
-        lb = src[0].sample2;
-        dst[0] = (lb & 0x1F) << 3;
-        dst[1] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[2] = hb & 0xF8;
-
-        hb = src[1].sample1;
-        lb = src[1].sample2;
-        dst[3] = (lb & 0x1F) << 3;
-        dst[4] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[5] = hb & 0xF8;
-
-        hb = src[2].sample1;
-        lb = src[2].sample2;
-        dst[6] = (lb & 0x1F) << 3;
-        dst[7] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[8] = hb & 0xF8;
-
-        hb = src[3].sample1;
-        lb = src[3].sample2;
-        dst[9] = (lb & 0x1F) << 3;
-        dst[10] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[11] = hb & 0xF8;
-        src += 4;
-        dst += 12;
-    }
-}
-
-static void IRAM_ATTR dma_filter_rgb888_highspeed(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t* dst)
-{
-    size_t end = dma_desc->length / sizeof(dma_elem_t) / 8;
-    uint8_t lb, hb;
-    for (size_t i = 0; i < end; ++i) {
-        hb = src[0].sample1;
-        lb = src[1].sample1;
-        dst[0] = (lb & 0x1F) << 3;
-        dst[1] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[2] = hb & 0xF8;
-
-        hb = src[2].sample1;
-        lb = src[3].sample1;
-        dst[3] = (lb & 0x1F) << 3;
-        dst[4] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[5] = hb & 0xF8;
-
-        hb = src[4].sample1;
-        lb = src[5].sample1;
-        dst[6] = (lb & 0x1F) << 3;
-        dst[7] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[8] = hb & 0xF8;
-
-        hb = src[6].sample1;
-        lb = src[7].sample1;
-        dst[9] = (lb & 0x1F) << 3;
-        dst[10] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[11] = hb & 0xF8;
-
-        src += 8;
-        dst += 12;
-    }
-    if ((dma_desc->length & 0x7) != 0) {
-        hb = src[0].sample1;
-        lb = src[1].sample1;
-        dst[0] = (lb & 0x1F) << 3;
-        dst[1] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[2] = hb & 0xF8;
-
-        hb = src[2].sample1;
-        lb = src[2].sample2;
-        dst[3] = (lb & 0x1F) << 3;
-        dst[4] = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-        dst[5] = hb & 0xF8;
-    }
-}
-
 /*
  * Public Methods
  * */
@@ -1026,53 +846,17 @@ uint8_t camera_init(const camera_config_t* config)
     if (pix_format == PIXFORMAT_GRAYSCALE) {
         s_state->fb_size = s_state->width * s_state->height;
         if (s_state->sensor.id.PID == OV3660_PID || s_state->sensor.id.PID == OV5640_PID || s_state->sensor.id.PID == NT99141_PID) {
-            if (is_hs_mode()) {
-                s_state->sampling_mode = SM_0A00_0B00;
-                s_state->dma_filter = &dma_filter_yuyv_highspeed;
-            } else {
-                s_state->sampling_mode = SM_0A0B_0C0D;
-                s_state->dma_filter = &dma_filter_yuyv;
-            }
             s_state->in_bytes_per_pixel = 1;       // camera sends Y8
         } else {
-            if (is_hs_mode() && s_state->sensor.id.PID != OV7725_PID) {
-                s_state->sampling_mode = SM_0A00_0B00;
-                s_state->dma_filter = &dma_filter_grayscale_highspeed;
-            } else {
-                s_state->sampling_mode = SM_0A0B_0C0D;
-                s_state->dma_filter = &dma_filter_grayscale;
-            }
             s_state->in_bytes_per_pixel = 2;       // camera sends YU/YV
         }
         s_state->fb_bytes_per_pixel = 1;       // frame buffer stores Y8
     } else if (pix_format == PIXFORMAT_YUV422 || pix_format == PIXFORMAT_RGB565) {
             s_state->fb_size = s_state->width * s_state->height * 2;
-            if (is_hs_mode() && s_state->sensor.id.PID != OV7725_PID) {
-                if(s_state->sensor.id.PID == OV7670_PID) {
-                    s_state->sampling_mode = SM_0A0B_0B0C;
-                }else{
-                    s_state->sampling_mode = SM_0A00_0B00;
-                }
-                s_state->dma_filter = &dma_filter_yuyv_highspeed;
-            } else {
-                s_state->sampling_mode = SM_0A0B_0C0D;
-                s_state->dma_filter = &dma_filter_yuyv;
-            }
             s_state->in_bytes_per_pixel = 2;       // camera sends YU/YV
             s_state->fb_bytes_per_pixel = 2;       // frame buffer stores YU/YV/RGB565
     } else if (pix_format == PIXFORMAT_RGB888) {
         s_state->fb_size = s_state->width * s_state->height * 3;
-        if (is_hs_mode()) {
-            if(s_state->sensor.id.PID == OV7670_PID) {
-                s_state->sampling_mode = SM_0A0B_0B0C;
-            }else{
-                s_state->sampling_mode = SM_0A00_0B00;
-            }
-            s_state->dma_filter = &dma_filter_rgb888_highspeed;
-        } else {
-            s_state->sampling_mode = SM_0A0B_0C0D;
-            s_state->dma_filter = &dma_filter_rgb888;
-        }
         s_state->in_bytes_per_pixel = 2;       // camera sends RGB565
         s_state->fb_bytes_per_pixel = 3;       // frame buffer stores RGB888
     } else if (pix_format == PIXFORMAT_JPEG) {
@@ -1094,18 +878,11 @@ uint8_t camera_init(const camera_config_t* config)
         s_state->in_bytes_per_pixel = 2;
         s_state->fb_bytes_per_pixel = 2;
         s_state->fb_size = (s_state->width * s_state->height * s_state->fb_bytes_per_pixel) / compression_ratio_bound;
-        s_state->dma_filter = &dma_filter_jpeg;
-        s_state->sampling_mode = SM_0A00_0B00;
     } else {
         printf("Requested format is not supported\n");
         err = ESP_ERR_NOT_SUPPORTED;
         goto fail;
     }
-
-    printf("in_bpp: %d, fb_bpp: %d, fb_size: %d, mode: %d, width: %d height: %d\n",
-             s_state->in_bytes_per_pixel, s_state->fb_bytes_per_pixel,
-             s_state->fb_size, s_state->sampling_mode,
-             s_state->width, s_state->height);
 
     s_state->data_ready = xQueueCreate(16, sizeof(size_t));
     if (s_state->data_ready == NULL) {
@@ -1161,25 +938,25 @@ uint8_t camera_init(const camera_config_t* config)
         s_state->sensor.set_lenc(&s_state->sensor, true);
     }
 
-    if (skip_frame()) {
-        err = ESP_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT;
-        goto fail;
-    }
     //todo: for some reason the first set of the quality does not work.
     if (pix_format == PIXFORMAT_JPEG) {
         (*s_state->sensor.set_quality)(&s_state->sensor, config->jpeg_quality);
     }
     s_state->sensor.init_status(&s_state->sensor);
 
-    dcmi_init();
-
     err = dma_desc_init();
     if (err != ESP_OK) {
-        printf("Failed to initialize I2S and DMA\n");
+        printf("Failed to initialize DMA\n");
         goto fail;
     }
 
-    //s_state->fb_size = 75 * 1024;
+    dcmi_init();
+    if (skip_frame())
+    {
+        err = ESP_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT;
+        goto fail;
+    }
+    // s_state->fb_size = 75 * 1024;
     err = camera_fb_init(s_state->config.fb_count);
     if (err != ESP_OK) {
         printf("Failed to allocate frame buffer\n");
