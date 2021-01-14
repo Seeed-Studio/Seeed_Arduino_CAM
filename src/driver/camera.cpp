@@ -332,6 +332,36 @@ static void dcmi_init()
 	HAL_NVIC_SetPriority(DCMI_IRQn, 0 ,5);
 	HAL_NVIC_EnableIRQ(DCMI_IRQn);
 
+    DMA_Config();
+}
+
+static void DMA_Config()
+{
+    __HAL_RCC_DMA2_CLK_ENABLE();
+    DMA_Handle_dcmi.Instance = DMA2_Stream1;
+    DMA_Handle_dcmi.Init.Request = DMA_REQUEST_DCMI;
+    DMA_Handle_dcmi.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    DMA_Handle_dcmi.Init.PeriphInc = DMA_PINC_DISABLE;
+    DMA_Handle_dcmi.Init.MemInc = DMA_MINC_ENABLE;
+    DMA_Handle_dcmi.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    DMA_Handle_dcmi.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    DMA_Handle_dcmi.Init.Mode = DMA_CIRCULAR;
+    DMA_Handle_dcmi.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    DMA_Handle_dcmi.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    DMA_Handle_dcmi.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    DMA_Handle_dcmi.Init.MemBurst = DMA_MBURST_INC8;
+    DMA_Handle_dcmi.Init.PeriphBurst = DMA_PBURST_SINGLE;
+
+    HAL_DMA_Init(&DMA_Handle_dcmi);
+    __HAL_LINKDMA(&DCMI_Handle, DMA_Handle, DMA_Handle_dcmi);
+
+    HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+
+    if (HAL_DCMI_Start_DMA(&DCMI_Handle, DCMI_MODE_CONTINUOUS, (uint32_t)s_state->dma_buffer,(((s_state->width) * (s_state->height)) / 2)) == HAL_OK)
+    {
+        printf("HAL DCMI Start DMA ok\n");
+    }
 }
 
 
