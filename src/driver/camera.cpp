@@ -184,7 +184,7 @@ static int skip_frame()
     }
     return 0;
 timeout:
-    ESP_LOGE(TAG, "Timeout waiting for VSYNC");
+    printf("Timeout waiting for VSYNC\n");
     return 1;
 }
 
@@ -210,7 +210,7 @@ static uint8_t camera_fb_init(size_t count)
 
     camera_fb_deinit();
 
-    ESP_LOGI(TAG, "Allocating %u frame buffers (%d KB total)", count, (s_state->fb_size * count) / 1024);
+    printf("Allocating %u frame buffers (%d KB total)\n", count, (s_state->fb_size * count) / 1024);
 
     camera_fb_int_t * _fb = NULL, * _fb1 = NULL, * _fb2 = NULL;
     for(size_t i = 0; i < count; i++) {
@@ -222,14 +222,14 @@ static uint8_t camera_fb_init(size_t count)
         _fb2->size = s_state->fb_size;
         _fb2->buf = (uint8_t*) malloc(_fb2->size);
         if(!_fb2->buf) {
-            ESP_LOGI(TAG, "Allocating %d KB frame buffer in PSRAM", s_state->fb_size/1024);
+            printf("Allocating %d KB frame buffer in PSRAM\n", s_state->fb_size/1024);
             _fb2->buf = (uint8_t*) heap_caps_calloc(_fb2->size, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         } else {
-            ESP_LOGI(TAG, "Allocating %d KB frame buffer in OnBoard RAM", s_state->fb_size/1024);
+            printf("Allocating %d KB frame buffer in OnBoard RAM\n", s_state->fb_size/1024);
         }
         if(!_fb2->buf) {
             free(_fb2);
-            ESP_LOGE(TAG, "Allocating %d KB frame buffer Failed", s_state->fb_size/1024);
+            printf("Allocating %d KB frame buffer Failed\n", s_state->fb_size/1024);
             goto fail;
         }
         memset(_fb2->buf, 0, _fb2->size);
@@ -282,7 +282,7 @@ static uint8_t dma_desc_init()
 
     // assert(s_state->width % 4 == 0);
     size_t line_size = s_state->width * s_state->in_bytes_per_pixel * 4;
-    printf("Line width (for DMA): %d bytes", line_size);
+    printf("Line width (for DMA): %d bytes\n", line_size);
     size_t dma_per_line = 1;
     size_t buf_size = line_size;
     while (buf_size >= 4096) {
@@ -294,9 +294,9 @@ static uint8_t dma_desc_init()
     s_state->dma_per_line = dma_per_line;
     s_state->dma_desc_count = dma_desc_count;
 
-    printf("DMA buffer size: %d, DMA buffers per line: %d", buf_size, dma_per_line);
-    printf("DMA buffer count: %d", dma_desc_count);
-    printf("DMA buffer total: %d bytes", buf_size * dma_desc_count);
+    printf("DMA buffer size: %d, DMA buffers per line: %d\n", buf_size, dma_per_line);
+    printf("DMA buffer count: %d\n", dma_desc_count);
+    printf("DMA buffer total: %d bytes\n", buf_size * dma_desc_count);
     
     s_state->dma_buf = (dma_elem_t**) malloc(sizeof(dma_elem_t*) * dma_desc_count);
     if (s_state->dma_buf == NULL) {
@@ -311,13 +311,13 @@ static uint8_t dma_desc_init()
     size_t dma_sample_count = 0;
 
     for (int i = 0; i < dma_desc_count; ++i) {
-        printf("Allocating DMA buffer #%d, size=%d", i, buf_size);
+        printf("Allocating DMA buffer #%d, size=%d\n", i, buf_size);
         dma_elem_t* buf = (dma_elem_t*) malloc(buf_size);
         if (buf == NULL) {
             return ESP_ERR_NO_MEM;
         }
         s_state->dma_buf[i] = buf;
-        printf("dma_buf[%d]=%p", i, buf);
+        printf("dma_buf[%d]=%p\n", i, buf);
 
         lldesc_t* pd = &s_state->dma_desc[i];
         pd->length = buf_size;
@@ -596,7 +596,7 @@ static void IRAM_ATTR dma_filter_buffer(size_t buf_idx)
         if(s_state->sensor.pixformat == PIXFORMAT_JPEG) {
             uint32_t sig = *((uint32_t *)s_state->fb->buf) & 0xFFFFFF;
             if(sig != 0xffd8ff) {
-                ets_printf("bh 0x%08x\n", sig);
+                printf("bh 0x%08x\n", sig);
                 s_state->fb->bad = 1;
                 return;
             }
@@ -815,12 +815,12 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
 #if 0
     TODO: to be removed?
     if(config->pin_xclk >= 0) {
-    //   ESP_LOGD(TAG, "Enabling XCLK output");
+    //   printf(TAG, "Enabling XCLK output");
       camera_enable_out_clock(config);
     }
 #endif
     if (config->pin_sscb_sda != -1) {
-    //   ESP_LOGD(TAG, "Initializing SSCB");
+      printf("Initializing SSCB\n");
       SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);
     }
 	
@@ -839,7 +839,7 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 
-    // ESP_LOGD(TAG, "Searching for camera address");
+    printf("Searching for camera address\n");
     vTaskDelay(10 / portTICK_PERIOD_MS);
     uint8_t slv_addr = SCCB_Probe();
     if (slv_addr == 0) {
@@ -864,7 +864,7 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
 #if CONFIG_NT99141_SUPPORT
    if (slv_addr == 0x2a)
     {
-        ESP_LOGD(TAG, "Resetting NT99141");
+        printf("Resetting NT99141\n");
         SCCB_Write16(0x2a, 0x3008, 0x01);//bank sensor
     }
 #endif 
@@ -877,15 +877,15 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
         id->PID = SCCB_Read16(s_state->sensor.slv_addr, REG16_CHIDH);
         id->VER = SCCB_Read16(s_state->sensor.slv_addr, REG16_CHIDL);
         vTaskDelay(10 / portTICK_PERIOD_MS);
-        ESP_LOGD(TAG, "Camera PID=0x%02x VER=0x%02x", id->PID, id->VER);
+        printf("Camera PID=0x%02x VER=0x%02x\n", id->PID, id->VER);
     } else if(s_state->sensor.slv_addr == 0x2a){
         id->PID = SCCB_Read16(s_state->sensor.slv_addr, 0x3000);
         id->VER = SCCB_Read16(s_state->sensor.slv_addr, 0x3001);
         vTaskDelay(10 / portTICK_PERIOD_MS);
-        ESP_LOGD(TAG, "Camera PID=0x%02x VER=0x%02x", id->PID, id->VER);
+        printf("Camera PID=0x%02x VER=0x%02x\n", id->PID, id->VER);
         if(config->xclk_freq_hz > 10000000)
         {
-            ESP_LOGE(TAG, "NT99141: only XCLK under 10MHz is supported, and XCLK is now set to 10M");
+            printf("NT99141: only XCLK under 10MHz is supported, and XCLK is now set to 10M\n");
             s_state->sensor.xclk_freq_hz = 10000000;
         }    
     } else {
@@ -895,7 +895,7 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
         id->MIDL = SCCB_Read(s_state->sensor.slv_addr, REG_MIDL);
         id->MIDH = SCCB_Read(s_state->sensor.slv_addr, REG_MIDH);
         vTaskDelay(10 / portTICK_PERIOD_MS);
-        ESP_LOGD(TAG, "Camera PID=0x%02x VER=0x%02x MIDL=0x%02x MIDH=0x%02x",
+        printf("Camera PID=0x%02x VER=0x%02x MIDL=0x%02x MIDH=0x%02x\n",
                  id->PID, id->VER, id->MIDH, id->MIDL);
 
 #if (CONFIG_OV3660_SUPPORT || CONFIG_OV5640_SUPPORT || CONFIG_NT99141_SUPPORT)
@@ -944,11 +944,11 @@ uint8_t camera_probe(const camera_config_t* config, camera_model_t* out_camera_m
         id->PID = 0;
         *out_camera_model = CAMERA_UNKNOWN;
         camera_disable_out_clock();
-        ESP_LOGE(TAG, "Detected camera not supported.");
+        printf("Detected camera not supported.\n");
         return ESP_ERR_CAMERA_NOT_SUPPORTED;
     }
 
-    ESP_LOGD(TAG, "Doing SW reset of sensor");
+    printf("Doing SW reset of sensor\n");
     s_state->sensor.reset(&s_state->sensor);
 
     return ESP_OK;
@@ -1095,7 +1095,7 @@ uint8_t camera_init(const camera_config_t* config)
         s_state->fb_bytes_per_pixel = 3;       // frame buffer stores RGB888
     } else if (pix_format == PIXFORMAT_JPEG) {
         if (s_state->sensor.id.PID != OV2640_PID && s_state->sensor.id.PID != OV3660_PID && s_state->sensor.id.PID != OV5640_PID  && s_state->sensor.id.PID != NT99141_PID) {
-            ESP_LOGE(TAG, "JPEG format is only supported for ov2640, ov3660 and ov5640");
+            printf("JPEG format is only supported for ov2640, ov3660 and ov5640\n");
             err = ESP_ERR_NOT_SUPPORTED;
             goto fail;
         }
@@ -1115,19 +1115,19 @@ uint8_t camera_init(const camera_config_t* config)
         s_state->dma_filter = &dma_filter_jpeg;
         s_state->sampling_mode = SM_0A00_0B00;
     } else {
-        ESP_LOGE(TAG, "Requested format is not supported");
+        printf("Requested format is not supported\n");
         err = ESP_ERR_NOT_SUPPORTED;
         goto fail;
     }
 
-    ESP_LOGD(TAG, "in_bpp: %d, fb_bpp: %d, fb_size: %d, mode: %d, width: %d height: %d",
+    printf("in_bpp: %d, fb_bpp: %d, fb_size: %d, mode: %d, width: %d height: %d\n",
              s_state->in_bytes_per_pixel, s_state->fb_bytes_per_pixel,
              s_state->fb_size, s_state->sampling_mode,
              s_state->width, s_state->height);
 
     s_state->data_ready = xQueueCreate(16, sizeof(size_t));
     if (s_state->data_ready == NULL) {
-        ESP_LOGE(TAG, "Failed to dma queue");
+        printf("Failed to dma queue\n");
         err = ESP_ERR_NO_MEM;
         goto fail;
     }
@@ -1135,7 +1135,7 @@ uint8_t camera_init(const camera_config_t* config)
     if(s_state->config.fb_count == 1) {
         s_state->frame_ready = xSemaphoreCreateBinary();
         if (s_state->frame_ready == NULL) {
-            ESP_LOGE(TAG, "Failed to create semaphore");
+            printf("Failed to create semaphore\n");
             err = ESP_ERR_NO_MEM;
             goto fail;
         }
@@ -1143,7 +1143,7 @@ uint8_t camera_init(const camera_config_t* config)
         s_state->fb_in = xQueueCreate(s_state->config.fb_count, sizeof(camera_fb_t *));
         s_state->fb_out = xQueueCreate(1, sizeof(camera_fb_t *));
         if (s_state->fb_in == NULL || s_state->fb_out == NULL) {
-            ESP_LOGE(TAG, "Failed to fb queues");
+            printf("Failed to fb queues\n");
             err = ESP_ERR_NO_MEM;
             goto fail;
         }
@@ -1158,15 +1158,15 @@ uint8_t camera_init(const camera_config_t* config)
     if (!xTaskCreate(&dma_filter_task, "dma_filter", 4096, NULL, 10, &s_state->dma_filter_task))
 #endif
     {
-        ESP_LOGE(TAG, "Failed to create DMA filter task");
+        printf("Failed to create DMA filter task\n");
         err = ESP_ERR_NO_MEM;
         goto fail;
     }
     s_state->sensor.status.framesize = frame_size;
     s_state->sensor.pixformat = pix_format;
-    ESP_LOGD(TAG, "Setting frame size to %dx%d", s_state->width, s_state->height);
+    printf("Setting frame size to %dx%d\n", s_state->width, s_state->height);
     if (s_state->sensor.set_framesize(&s_state->sensor, frame_size) != 0) {
-        ESP_LOGE(TAG, "Failed to set frame size");
+        printf("Failed to set frame size\n");
         err = ESP_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE;
         goto fail;
     }
@@ -1193,14 +1193,14 @@ uint8_t camera_init(const camera_config_t* config)
 
     err = dma_desc_init();
     if (err != ESP_OK) {
-        printf("Failed to initialize I2S and DMA");
+        printf("Failed to initialize I2S and DMA\n");
         goto fail;
     }
 
     //s_state->fb_size = 75 * 1024;
     err = camera_fb_init(s_state->config.fb_count);
     if (err != ESP_OK) {
-        printf("Failed to allocate frame buffer");
+        printf("Failed to allocate frame buffer\n");
         goto fail;
     }
     printf("camera init end\n");
@@ -1217,34 +1217,34 @@ uint8_t arduino_camera_init(const camera_config_t* config)
     hw_gpio_init(config);
     uint8_t err = camera_probe(config, &camera_model);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Camera probe failed with error 0x%x", err);
+        printf("Camera probe failed with error 0x%x\n", err);
         goto fail;
     }
     if (camera_model == CAMERA_OV7725) {
-        ESP_LOGI(TAG, "Detected OV7725 camera");
+        printf("Detected OV7725 camera\n");
         if(config->pixel_format == PIXFORMAT_JPEG) {
-            ESP_LOGE(TAG, "Camera does not support JPEG");
+            printf("Camera does not support JPEG\n");
             err = ESP_ERR_CAMERA_NOT_SUPPORTED;
             goto fail;
         }
     } else if (camera_model == CAMERA_OV2640) {
-        ESP_LOGI(TAG, "Detected OV2640 camera");
+        printf("Detected OV2640 camera\n");
     } else if (camera_model == CAMERA_OV3660) {
-        ESP_LOGI(TAG, "Detected OV3660 camera");
+        printf("Detected OV3660 camera\n");
     } else if (camera_model == CAMERA_OV5640) {
-        ESP_LOGI(TAG, "Detected OV5640 camera");
+        printf("Detected OV5640 camera\n");
     } else if (camera_model == CAMERA_OV7670) {
-        ESP_LOGI(TAG, "Detected OV7670 camera");
+        printf("Detected OV7670 camera\n");
     } else if (camera_model == CAMERA_NT99141) {
-        ESP_LOGI(TAG, "Detected NT99141 camera");
+        printf("Detected NT99141 camera\n");
     } else {
-        ESP_LOGI(TAG, "Camera not supported");
+        printf("Camera not supported\n");
         err = ESP_ERR_CAMERA_NOT_SUPPORTED;
         goto fail;
     }
     err = camera_init(config);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
+        printf("Camera init failed with error 0x%x\n", err);
         return err;
     }
     return ESP_OK;
@@ -1304,7 +1304,7 @@ camera_fb_t* arduino_camera_fb_get()
     }
     if(!I2S0.conf.rx_start) {
         if(s_state->config.fb_count > 1) {
-            ESP_LOGD(TAG, "i2s_run");
+            printf("i2s_run\n");
         }
         if (i2s_run() != 0) {
             return NULL;
@@ -1314,7 +1314,7 @@ camera_fb_t* arduino_camera_fb_get()
     if (s_state->config.fb_count == 1) {
         if (xSemaphoreTake(s_state->frame_ready, FB_GET_TIMEOUT) != pdTRUE){
             i2s_stop(&need_yield);
-            ESP_LOGE(TAG, "Failed to get the frame on time!");
+            printf("Failed to get the frame on time!\n");
             return NULL;
         }
         return (camera_fb_t*)s_state->fb;
@@ -1323,7 +1323,7 @@ camera_fb_t* arduino_camera_fb_get()
     if(s_state->fb_out) {
         if (xQueueReceive(s_state->fb_out, &fb, FB_GET_TIMEOUT) != pdTRUE) {
             i2s_stop(&need_yield);
-            ESP_LOGE(TAG, "Failed to get the frame on time!");
+            printf("Failed to get the frame on time!\n");
             return NULL;
         }
     }
@@ -1429,7 +1429,7 @@ uint8_t arduino_camera_load_from_nvs(const char *key)
       nvs_close(handle);
       return ret;
   } else {
-      ESP_LOGW(TAG,"Error (%d) opening nvs key \"%s\"",ret,key);
+      printf("Error (%d) opening nvs key \"%s\"\n",ret,key);
       return ret;
   }
 }
