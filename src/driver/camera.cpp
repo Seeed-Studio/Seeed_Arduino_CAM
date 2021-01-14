@@ -130,7 +130,7 @@ static void dma_desc_deinit();
 static void dma_filter_task(void *pvParameters);
 
 
-static int IRAM_ATTR _gpio_get_level(gpio_num_t gpio_num)
+static int _gpio_get_level(gpio_num_t gpio_num)
 {
     if (gpio_num < 32) {
         return (GPIO.in >> gpio_num) & 0x1;
@@ -139,7 +139,7 @@ static int IRAM_ATTR _gpio_get_level(gpio_num_t gpio_num)
     }
 }
 
-static void IRAM_ATTR vsync_intr_disable()
+static void vsync_intr_disable()
 {
     gpio_set_intr_type(s_state->config.pin_vsync, GPIO_INTR_DISABLE);
 }
@@ -365,7 +365,7 @@ static void DMA_Config()
 }
 
 
-static void IRAM_ATTR signal_dma_buf_received(bool* need_yield)
+static void signal_dma_buf_received(bool* need_yield)
 {
     size_t dma_desc_filled = s_state->dma_desc_cur;
     s_state->dma_desc_cur = (dma_desc_filled + 1) % s_state->dma_desc_count;
@@ -389,7 +389,7 @@ static void IRAM_ATTR signal_dma_buf_received(bool* need_yield)
 
 
 #if 1
-static void IRAM_ATTR vsync_isr(void* arg)
+static void vsync_isr(void* arg)
 {
     printf("into vsync isr function\n");
     for (int i = 0; i < s_state->dma_desc->length; i++)
@@ -399,7 +399,7 @@ static void IRAM_ATTR vsync_isr(void* arg)
 }
 #endif
 
-static void IRAM_ATTR camera_fb_done()
+static void camera_fb_done()
 {
     camera_fb_int_t * fb = NULL, * fb2 = NULL;
     BaseType_t taskAwoken = 0;
@@ -462,7 +462,7 @@ static void IRAM_ATTR camera_fb_done()
 
 #if 0
 TODO: to be removed?
-static void IRAM_ATTR dma_finish_frame()
+static void dma_finish_frame()
 {
     size_t buf_len = s_state->width * s_state->fb_bytes_per_pixel / s_state->dma_per_line;
 
@@ -513,7 +513,7 @@ static void IRAM_ATTR dma_finish_frame()
 }
 #endif
 
-static void IRAM_ATTR dma_filter_buffer(size_t buf_idx)
+static void dma_filter_buffer(size_t buf_idx)
 {
     //no need to process the data if frame is in use or is bad
     if(s_state->fb->ref || s_state->fb->bad) {
@@ -555,7 +555,7 @@ static void IRAM_ATTR dma_filter_buffer(size_t buf_idx)
     s_state->dma_filtered_count++;
 }
 
-static void IRAM_ATTR dma_filter_task(void *pvParameters)
+static void dma_filter_task(void *pvParameters)
 {
     s_state->dma_filtered_count = 0;
     while (true) {
