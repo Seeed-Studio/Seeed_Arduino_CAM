@@ -248,89 +248,12 @@ fail:
 
 static uint8_t dma_desc_init()
 {
-    __HAL_RCC_DMA2_CLK_ENABLE();
-    DMA_Handle_dcmi.Instance = DMA2_Stream1;
-    DMA_Handle_dcmi.Init.Request = DMA_REQUEST_DCMI;
-    DMA_Handle_dcmi.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    DMA_Handle_dcmi.Init.PeriphInc = DMA_PINC_DISABLE;
-    DMA_Handle_dcmi.Init.MemInc = DMA_MINC_ENABLE;
-    DMA_Handle_dcmi.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-    DMA_Handle_dcmi.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    DMA_Handle_dcmi.Init.Mode = DMA_CIRCULAR;
-    DMA_Handle_dcmi.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    DMA_Handle_dcmi.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    DMA_Handle_dcmi.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-    DMA_Handle_dcmi.Init.MemBurst = DMA_MBURST_INC8;
-    DMA_Handle_dcmi.Init.PeriphBurst = DMA_PBURST_SINGLE;
-
-    HAL_DMA_Init(&DMA_Handle_dcmi);
-    __HAL_LINKDMA(&DCMI_Handle, DMA_Handle, DMA_Handle_dcmi);
-
-    HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
-
-    // assert(s_state->width % 4 == 0);
-    size_t line_size = s_state->width * s_state->in_bytes_per_pixel * 4;
-    printf("Line width (for DMA): %d bytes\n", line_size);
-    size_t dma_per_line = 1;
-    size_t buf_size = line_size;
-    while (buf_size >= 4096) {
-        buf_size /= 2;
-        dma_per_line *= 2;
-    }
-    size_t dma_desc_count = dma_per_line * 1;
-    s_state->dma_buf_width = line_size;
-    s_state->dma_per_line = dma_per_line;
-    s_state->dma_desc_count = dma_desc_count;
-
-    printf("DMA buffer size: %d, DMA buffers per line: %d\n", buf_size, dma_per_line);
-    printf("DMA buffer count: %d\n", dma_desc_count);
-    printf("DMA buffer total: %d bytes\n", buf_size * dma_desc_count);
-    
-    s_state->dma_buf = (dma_elem_t**) malloc(sizeof(dma_elem_t*) * dma_desc_count);
-    if (s_state->dma_buf == NULL) {
-        return ESP_ERR_NO_MEM;
-    }
-
-    s_state->dma_desc = (lldesc_t*) malloc(sizeof(lldesc_t) * dma_desc_count);
-    if (s_state->dma_desc == NULL) {
-        return ESP_ERR_NO_MEM;
-    }
-    
-    size_t dma_sample_count = 0;
-
-    for (int i = 0; i < dma_desc_count; ++i) {
-        printf("Allocating DMA buffer #%d, size=%d\n", i, buf_size);
-        dma_elem_t* buf = (dma_elem_t*) malloc(buf_size);
-        if (buf == NULL) {
-            return ESP_ERR_NO_MEM;
-        }
-        s_state->dma_buf[i] = buf;
-        printf("dma_buf[%d]=%p\n", i, buf);
-
-        lldesc_t* pd = &s_state->dma_desc[i];
-        pd->length = buf_size;
-        // if (s_state->sampling_mode == SM_0A0B_0B0C &&
-        //         (i + 1) % dma_per_line == 0) {
-        //     pd->length -= 4;
-        // }
-        dma_sample_count += pd->length / 4;
-        pd->size = pd->length;
-        pd->owner = 1;
-        pd->sosf = 1;
-        pd->buf = (uint8_t*) buf;
-        pd->offset = 0;
-        pd->empty = 0;
-        pd->eof = 1;
-        pd->qe.stqe_next = &s_state->dma_desc[(i + 1) % dma_desc_count];
-    }
-    s_state->dma_sample_count = dma_sample_count;
-
-    if (HAL_DCMI_Start_DMA(&DCMI_Handle, DCMI_MODE_CONTINUOUS, (uint32_t)s_state->dma_desc,1600*1200) == HAL_OK)
+    s_state->dma_buffer = (uint8_t *) malloc(s_state->height * s_state->width * s_state->in_bytes_per_pixel);
+    if (s_state->dma_buffer == nullptr)
     {
-        printf("HAL DCMI Start DMA ok\n");
+        printf("disbuf malloc failed\n");
     }
-    return 0;
+    return 0; 
 }
 
 static void dma_desc_deinit()
