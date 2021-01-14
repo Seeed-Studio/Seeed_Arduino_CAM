@@ -102,5 +102,13 @@ uint8_t SCCB_Read16(uint8_t slv_addr, uint16_t reg)
 
 uint8_t SCCB_Write16(uint8_t slv_addr, uint16_t reg, uint8_t data)
 {
+    static uint16_t i = 0;
+    uint16_t reg_htons = LITTLETOBIG(reg);
+    uint8_t *reg_u8 = (uint8_t *)&reg_htons;
+    Wire.beginTransmission(slv_addr);
+    Wire.write(reg_u8[0]);
+    Wire.write(reg_u8[1]);
+    Wire.write(data);
+    Wire.endTransmission();
     return 0;
 }
