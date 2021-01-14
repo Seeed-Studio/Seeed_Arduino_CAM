@@ -89,8 +89,15 @@ uint8_t SCCB_Write(uint8_t slv_addr, uint8_t reg, uint8_t data)
 
 uint8_t SCCB_Read16(uint8_t slv_addr, uint16_t reg)
 {
-
-    return 0;
+    uint8_t data = 0;
+    Wire.beginTransmission(slv_addr);
+    Wire.endTransmission();
+    Wire.requestFrom(slv_addr, 1, reg, 1, true);
+    while (Wire.available())
+    {
+        data = Wire.read();
+        return data;
+    }
 }
 
 uint8_t SCCB_Write16(uint8_t slv_addr, uint16_t reg, uint8_t data)
