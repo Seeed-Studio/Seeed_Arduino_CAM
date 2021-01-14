@@ -434,17 +434,6 @@ static void signal_dma_buf_received(bool* need_yield)
 }
 
 
-#if 1
-static void vsync_isr(void* arg)
-{
-    printf("into vsync isr function\n");
-    for (int i = 0; i < s_state->dma_desc->length; i++)
-    {
-        printf("dma buf received = %d\n",s_state->dma_desc->buf[i]);
-    }
-}
-#endif
-
 static void camera_fb_done()
 {
     camera_fb_int_t * fb = NULL, * fb2 = NULL;
@@ -604,15 +593,13 @@ static void dma_filter_buffer(size_t buf_idx)
 static void dma_filter_task(void *pvParameters)
 {
     s_state->dma_filtered_count = 0;
-    while (true) {
-        size_t buf_idx;
-        if(xQueueReceive(s_state->data_ready, &buf_idx, portMAX_DELAY) == pdTRUE) {
-            if (buf_idx == SIZE_MAX) {
-                //this is the end of the frame
-                dma_finish_frame();
-            } else {
-                dma_filter_buffer(buf_idx);
-            }
+    uint8_t *buf_idx = (uint8_t *)malloc(s_state->width * s_state->in_bytes_per_pixel);
+    while (true)
+    {
+        if(xQueueReceive(s_state->data_ready, buf_idx, portMAX_DELAY) == pdTRUE) {
+            printf("into xxQueueReceive\n");
+            //this is the end of the frame
+            dma_finish_frame();
         }
     }
 }
