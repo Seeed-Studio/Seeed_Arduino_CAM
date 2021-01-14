@@ -884,7 +884,7 @@ uint8_t camera_init(const camera_config_t* config)
         goto fail;
     }
 
-    s_state->data_ready = xQueueCreate(16, sizeof(size_t));
+    s_state->data_ready = xQueueCreate(16, sizeof(s_state->width * s_state->height * s_state->fb_bytes_per_pixel));
     if (s_state->data_ready == NULL) {
         printf("Failed to dma queue\n");
         err = ESP_ERR_NO_MEM;
