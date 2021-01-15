@@ -495,99 +495,19 @@ static void camera_fb_done()
 }
 
 
-#if 0
-TODO: to be removed?
 static void dma_finish_frame()
 {
-    size_t buf_len = s_state->width * s_state->fb_bytes_per_pixel / s_state->dma_per_line;
-
-    if(!s_state->fb->ref) {
-        // is the frame bad?
-        if(s_state->fb->bad){
-            s_state->fb->bad = 0;
-            s_state->fb->len = 0;
-            *((uint32_t *)s_state->fb->buf) = 0;
-            if(s_state->config.fb_count == 1) {
-                i2s_start_bus();
-            }
-            //ets_printf("bad\n");
-        } else {
-            s_state->fb->len = s_state->dma_filtered_count * buf_len;
-            if(s_state->fb->len) {
-                //find the end marker for JPEG. Data after that can be discarded
-                if(s_state->fb->format == PIXFORMAT_JPEG){
-                    uint8_t * dptr = &s_state->fb->buf[s_state->fb->len - 1];
-                    while(dptr > s_state->fb->buf){
-                        if(dptr[0] == 0xFF && dptr[1] == 0xD9 && dptr[2] == 0x00 && dptr[3] == 0x00){
-                            dptr += 2;
-                            s_state->fb->len = dptr - s_state->fb->buf;
-                            if((s_state->fb->len & 0x1FF) == 0){
-                                s_state->fb->len += 1;
-                            }
-                            if((s_state->fb->len % 100) == 0){
-                                s_state->fb->len += 1;
-                            }
-                            break;
-                        }
-                        dptr--;
-                    }
-                }
-                //send out the frame
-                camera_fb_done();
-            } else if(s_state->config.fb_count == 1){
-                //frame was empty?
-                i2s_start_bus();
-            } else {
-                //ets_printf("empty\n");
-            }
-        }
-    } else if(s_state->fb->len) {
-        camera_fb_done();
-    }
-    s_state->dma_filtered_count = 0;
-}
-#endif
-
-static void dma_filter_buffer(size_t buf_idx)
-{
-    //no need to process the data if frame is in use or is bad
-    if(s_state->fb->ref || s_state->fb->bad) {
-        return;
-    }
-
-    //check if there is enough space in the frame buffer for the new data
-    size_t buf_len = s_state->width * s_state->fb_bytes_per_pixel / s_state->dma_per_line;
-    size_t fb_pos = s_state->dma_filtered_count * buf_len;
-    if(fb_pos > s_state->fb_size - buf_len) {
-        //size_t processed = s_state->dma_received_count * buf_len;
-        //ets_printf("[%s:%u] ovf pos: %u, processed: %u\n", __FUNCTION__, __LINE__, fb_pos, processed);
-        return;
-    }
-
-    //convert I2S DMA buffer to pixel data
-    (*s_state->dma_filter)(s_state->dma_buf[buf_idx], &s_state->dma_desc[buf_idx], s_state->fb->buf + fb_pos);
-
-    //first frame buffer
-    if(!s_state->dma_filtered_count) {
-        //check for correct JPEG header
-        if(s_state->sensor.pixformat == PIXFORMAT_JPEG) {
-            uint32_t sig = *((uint32_t *)s_state->fb->buf) & 0xFFFFFF;
-            if(sig != 0xffd8ff) {
-                printf("bh 0x%08x\n", sig);
-                s_state->fb->bad = 1;
-                return;
-            }
-        }
-        //set the frame properties
+    if (!s_state->fb->ref)
+    {  
         s_state->fb->width = resolution[s_state->sensor.status.framesize].width;
         s_state->fb->height = resolution[s_state->sensor.status.framesize].height;
+        s_state->fb->len = (s_state->height) * (s_state->width) * s_state->fb_bytes_per_pixel;
         s_state->fb->format = s_state->sensor.pixformat;
-
-        uint64_t us = (uint64_t)esp_timer_get_time();
+        uint64_t us = (uint64_t)millis();
         s_state->fb->timestamp.tv_sec = us / 1000000UL;
         s_state->fb->timestamp.tv_usec = us % 1000000UL;
+        camera_fb_done();
     }
-    s_state->dma_filtered_count++;
 }
 
 static void dma_filter_task(void *pvParameters)
