@@ -888,6 +888,13 @@ uint8_t arduino_camera_init(const camera_config_t* config)
         printf("Camera init failed with error 0x%x\n", err);
         return err;
     }
+    printf("arduino camera init end\n");
+    while(1)
+    {
+        delay(100);
+        portYIELD();
+
+    }
     return ESP_OK;
 
 fail:
