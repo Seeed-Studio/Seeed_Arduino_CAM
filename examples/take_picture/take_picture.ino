@@ -32,12 +32,11 @@
 // #include <nvs_flash.h>
 #include <sys/param.h>
 #include <string.h>
-
 #include "STM32FreeRTOS.h"
-
-
 #include "seeed_camera.h"
 #define ESP_OK 0
+
+TaskHandle_t loopTaskHandle = NULL;
 
 // WROVER-KIT PIN Map
 #define CAM_PIN_PWDN 24  //power down is not used
@@ -80,42 +79,44 @@ static camera_config_t camera_config = {
 
     //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
     .xclk_freq_hz = 20000000,
-    // .ledc_timer = LEDC_TIMER_0,
-    // .ledc_channel = LEDC_CHANNEL_0,
 
-    .pixel_format = PIXFORMAT_JPEG, //YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_UXGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
+    .pixel_format = PIXFORMAT_RGB565, //YUV422,GRAYSCALE,RGB565,JPEG
+    .frame_size = FRAMESIZE_96X96,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 12, //0-63 lower number means higher quality
     .fb_count = 1       //if more than one, i2s runs in continuous mode. Use only with JPEG
 };
 
-static void init_camera()
+
+static void init_camera(void* arg)
 {
     //initialize the camera
-    uint8_t err = arduino_camera_init(&camera_config);
-    if (err != ESP_OK)
-    {
-        printf("Camera Init Failed");
-    }
+    arduino_camera_init(&camera_config);
 }
+
+static void init_loop(void* arg)
+{
+  while(1)
+  {
+     camera_fb_t *pic = arduino_camera_fb_get();
+     // use pic->buf to access the image
+     printf("Picture taken! Its size was: %zu bytes\n", pic->len);
+    }
+ }
 
 void setup()
 {
-    portBASE_TYPE s1;
-    s1 = xTaskCreate(init_camera, NULL, 4096, NULL, 10,NULL);
+    portBASE_TYPE s1,s2;
+    s1 = xTaskCreate(init_camera, NULL, 4096, NULL, 5,NULL);
+    s2 = xTaskCreate(init_loop, NULL,2048, NULL, 5,NULL);
     if (s1 != pdPASS) {
-        printf("Creation problem\n");
-        while(1);
+    printf("Creation s1 problem\n");
+    }
+    if (s2 != pdPASS) {
+    printf("Creation s2 problem\n");
     }
     vTaskStartScheduler();
-    while(1);
 }
-
 void loop() {
-        printf("Taking picture...");
-        camera_fb_t *pic = arduino_camera_fb_get();
-        // use pic->buf to access the image
-        printf("Picture taken! Its size was: %zu bytes", pic->len);
-        delay(500);
+
 }
