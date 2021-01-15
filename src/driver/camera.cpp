@@ -292,13 +292,7 @@ static uint8_t dma_desc_init()
 
 static void dma_desc_deinit()
 {
-    if (s_state->dma_buf) {
-        for (int i = 0; i < s_state->dma_desc_count; ++i) {
-            free(s_state->dma_buf[i]);
-        }
-    }
-    free(s_state->dma_buf);
-    free(s_state->dma_desc);
+    free(s_state->dma_buffer);
 }
 
 
