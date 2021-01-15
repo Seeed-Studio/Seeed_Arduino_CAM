@@ -927,18 +927,10 @@ camera_fb_t* arduino_camera_fb_get()
     if (s_state == NULL) {
         return NULL;
     }
-    if(!I2S0.conf.rx_start) {
-        if(s_state->config.fb_count > 1) {
-            printf("i2s_run\n");
-        }
-        if (i2s_run() != 0) {
-            return NULL;
-        }
-    }
+
     bool need_yield = false;
     if (s_state->config.fb_count == 1) {
         if (xSemaphoreTake(s_state->frame_ready, FB_GET_TIMEOUT) != pdTRUE){
-            i2s_stop(&need_yield);
             printf("Failed to get the frame on time!\n");
             return NULL;
         }
@@ -947,7 +939,6 @@ camera_fb_t* arduino_camera_fb_get()
     camera_fb_int_t * fb = NULL;
     if(s_state->fb_out) {
         if (xQueueReceive(s_state->fb_out, &fb, FB_GET_TIMEOUT) != pdTRUE) {
-            i2s_stop(&need_yield);
             printf("Failed to get the frame on time!\n");
             return NULL;
         }
