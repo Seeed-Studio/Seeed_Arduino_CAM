@@ -171,23 +171,21 @@ extern "C"
 }
 #endif
 
-static int _gpio_get_level(gpio_num_t gpio_num)
+static int _gpio_get_level(uint32_t gpio_num)
 {
-    if (gpio_num < 32) {
-        return (GPIO.in >> gpio_num) & 0x1;
-    } else {
-        return (GPIO.in1.data >> (gpio_num - 32)) & 0x1;
-    }
+    digitalRead(gpio_num);
 }
 
 static void vsync_intr_disable()
 {
-    gpio_set_intr_type(s_state->config.pin_vsync, GPIO_INTR_DISABLE);
+    PinName p = digitalPinToPinName(config->pin_vsync);
+    pin_function(p, STM_PIN_DATA(STM_MODE_AF_PP,GPIO_PULLDOWN, 13));
 }
 
 static void vsync_intr_enable()
 {
-    gpio_set_intr_type(s_state->config.pin_vsync, GPIO_INTR_NEGEDGE);
+    PinName p = digitalPinToPinName(config->pin_vsync);
+    pin_function(p, STM_PIN_DATA(STM_MODE_AF_PP,GPIO_PULLUP, 13));
 }
 
 static int skip_frame()
