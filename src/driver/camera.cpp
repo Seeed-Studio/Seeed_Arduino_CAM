@@ -250,12 +250,6 @@ static uint8_t camera_fb_init(size_t count)
         _fb2->size = s_state->fb_size;
         _fb2->buf = (uint8_t*) malloc(_fb2->size);
         if(!_fb2->buf) {
-            printf("Allocating %d KB frame buffer in PSRAM\n", s_state->fb_size/1024);
-            _fb2->buf = (uint8_t*) heap_caps_calloc(_fb2->size, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        } else {
-            printf("Allocating %d KB frame buffer in OnBoard RAM\n", s_state->fb_size/1024);
-        }
-        if(!_fb2->buf) {
             free(_fb2);
             printf("Allocating %d KB frame buffer Failed\n", s_state->fb_size/1024);
             goto fail;
