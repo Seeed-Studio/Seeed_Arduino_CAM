@@ -910,22 +910,13 @@ uint8_t arduino_camera_deinit()
     if (s_state->frame_ready) {
         vSemaphoreDelete(s_state->frame_ready);
     }
-#if 0
-    gpio_isr_handler_remove(s_state->config.pin_vsync);
-    if (s_state->i2s_intr_handle) {
-        esp_intr_disable(s_state->i2s_intr_handle);
-        esp_intr_free(s_state->i2s_intr_handle);
-    }
-#endif
+
+    vsync_intr_disable()
     dma_desc_deinit();
     camera_fb_deinit();
 
-    if(s_state->config.pin_xclk >= 0) {
-      camera_disable_out_clock();
-    }
     free(s_state);
     s_state = NULL;
-    periph_module_disable(PERIPH_I2S0_MODULE);
     return ESP_OK;
 }
 
