@@ -20,8 +20,9 @@
 #include "driver/include/camera_common.h"
 #include "driver/include/xclk.h"
 #include "PinConfigured.h"
-
-
+#include "stm32h7xx_hal_dcmi.h"
+// #include "SEGGER_RTT/RTT/SEGGER_RTT.h"
+// #include "SEGGER_RTT/RTT/SEGGER_RTT_Conf.h"
 
 #if CONFIG_OV2640_SUPPORT
 #include "sensors/include/ov2640.h"
@@ -107,6 +108,7 @@ typedef struct {
     size_t dma_buf_width;
     size_t dma_sample_count;
 
+    uint8_t *dma_buffer;
     lldesc_t *dma_desc;
     dma_elem_t **dma_buf;
     size_t dma_desc_count;
@@ -147,7 +149,7 @@ extern "C"
     void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef *hdcmi)
     {
         BaseType_t xHigherPriorityTaskWoken;
-        #if 0
+        #if 1
         printf("+++++++++++++++++++++++++++\n");
         printf("+++++++++++++++++++++++++++\n");
         for (int i = 0; i < 18432; i++)
@@ -178,13 +180,13 @@ static int _gpio_get_level(uint32_t gpio_num)
 
 static void vsync_intr_disable()
 {
-    PinName p = digitalPinToPinName(config->pin_vsync);
+    PinName p = digitalPinToPinName(s_state->config.pin_vsync);
     pin_function(p, STM_PIN_DATA(STM_MODE_AF_PP,GPIO_PULLDOWN, 13));
 }
 
 static void vsync_intr_enable()
 {
-    PinName p = digitalPinToPinName(config->pin_vsync);
+    PinName p = digitalPinToPinName(s_state->config.pin_vsync);
     pin_function(p, STM_PIN_DATA(STM_MODE_AF_PP,GPIO_PULLUP, 13));
 }
 
@@ -778,11 +780,11 @@ uint8_t camera_init(const camera_config_t* config)
 
     //ToDo: core affinity?
 #if CONFIG_CAMERA_CORE0
-    if (!xTaskCreatePinnedToCore(&dma_filter_task, "dma_filter", 4096, NULL, 10, &s_state->dma_filter_task, 0))
+    if (!xTaskCreatePinnedToCore(&dma_filter_task, "dma_filter", 4096, NULL, 5, &s_state->dma_filter_task, 0))
 #elif CONFIG_CAMERA_CORE1
-    if (!xTaskCreatePinnedToCore(&dma_filter_task, "dma_filter", 4096, NULL, 10, &s_state->dma_filter_task, 1))
+    if (!xTaskCreatePinnedToCore(&dma_filter_task, "dma_filter", 4096, NULL, 5, &s_state->dma_filter_task, 1))
 #else
-    if (!xTaskCreate(&dma_filter_task, "dma_filter", 4096, NULL, 10, &s_state->dma_filter_task))
+    if (!xTaskCreate(&dma_filter_task, "dma_filter", 4096, NULL, 5, &s_state->dma_filter_task))
 #endif
     {
         printf("Failed to create DMA filter task\n");
@@ -886,7 +888,6 @@ uint8_t arduino_camera_init(const camera_config_t* config)
 fail:
     free(s_state);
     s_state = NULL;
-    camera_disable_out_clock();
     return err;
 }
 
@@ -911,7 +912,7 @@ uint8_t arduino_camera_deinit()
         vSemaphoreDelete(s_state->frame_ready);
     }
 
-    vsync_intr_disable()
+    vsync_intr_disable();
     dma_desc_deinit();
     camera_fb_deinit();
 
@@ -962,6 +963,7 @@ sensor_t * arduino_camera_sensor_get()
     return &s_state->sensor;
 }
 
+#if 0
 uint8_t arduino_camera_save_to_nvs(const char *key) 
 {
 #if ESP_IDF_VERSION_MAJOR > 3
@@ -1049,3 +1051,4 @@ uint8_t arduino_camera_load_from_nvs(const char *key)
       return ret;
   }
 }
+#endif
