@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <STM32FreeRTOS.h>
 #include "driver/include/sccb.h"
 #include "sensors/include/ov3660.h"
 #include "sensors/include/ov3660_regs.h"
