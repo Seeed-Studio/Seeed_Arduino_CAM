@@ -7,7 +7,6 @@
  *
  */
 
-#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1024,4 +1023,3 @@ int NT99141_init(sensor_t *sensor)
     return 0;
 }
 
-#endif

@@ -7,7 +7,6 @@
  *
  */
 
-#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1024,5 +1023,3 @@ int ov3660_init(sensor_t *sensor)
     sensor->set_xclk = set_xclk;
     return 0;
 }
-
-#endif

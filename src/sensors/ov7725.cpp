@@ -6,8 +6,6 @@
  * OV7725 driver.
  *
  */
-
-#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -548,5 +546,3 @@ int ov7725_init(sensor_t *sensor)
 
     return 0;
 }
-
-#endif

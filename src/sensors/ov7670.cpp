@@ -7,7 +7,6 @@
  *
  */
 
-#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -430,5 +429,3 @@ int ov7670_init(sensor_t *sensor)
     
     return 0;
 }
-
-#endif
