@@ -138,7 +138,6 @@ extern "C"
     void DMA2_Stream1_IRQHandler(void)
     {
         HAL_DMA_IRQHandler(&DMA_Handle_dcmi);
-        // signal_dma_buf_received(&need_yield);
     }
 
     void DCMI_PSSI_IRQHandler(void)
@@ -149,21 +148,6 @@ extern "C"
     void HAL_DCMI_VsyncEventCallback(DCMI_HandleTypeDef *hdcmi)
     {
         BaseType_t xHigherPriorityTaskWoken;
-        #if 1
-        printf("+++++++++++++++++++++++++++\n");
-        printf("+++++++++++++++++++++++++++\n");
-        for (int i = 0; i < 18432; i++)
-        {
-            if (i % 48 == 0)
-            {
-                printf("\n");
-            }
-            printf("%02X ", s_state->dma_buffer[i]);
-        }
-        printf("---------------------------\n");
-        printf("---------------------------\n");
-        printf("---------------------------\n");
-        #endif
         bool need_yield = false;
         DMA_Config();
         signal_dma_buf_received(&need_yield);
@@ -935,6 +919,21 @@ camera_fb_t* arduino_camera_fb_get()
             printf("Failed to get the frame on time!\n");
             return NULL;
         }
+        #if 0
+        printf("+++++++++++++++++++++++++++\n");
+        printf("+++++++++++++++++++++++++++\n");
+        for (int i = 0; i < 18432; i++)
+        {
+            if (i % 48 == 0)
+            {
+                printf("\n");
+            }
+            printf("%02X ", s_state->fb->buf[i]);
+        }
+        printf("---------------------------\n");
+        printf("---------------------------\n");
+        printf("---------------------------\n");
+        #endif
         return (camera_fb_t*)s_state->fb;
     }
     camera_fb_int_t * fb = NULL;
