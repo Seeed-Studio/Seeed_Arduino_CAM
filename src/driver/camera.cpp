@@ -151,6 +151,7 @@ extern "C"
         bool need_yield = false;
         DMA_Config();
         signal_dma_buf_received(&need_yield);
+        SCB_CleanInvalidateDCache();
 
     }
 #ifdef __cplusplus
@@ -205,6 +206,8 @@ timeout:
 static void camera_fb_deinit()
 {
     camera_fb_int_t * _fb1 = s_state->fb, * _fb2 = NULL;
+    s_state->fb->buf = NULL;
+    s_state->fb->len = 0;
     while(s_state->fb) {
         _fb2 = s_state->fb;
         s_state->fb = _fb2->next;
