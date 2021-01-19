@@ -97,10 +97,26 @@ static void init_camera(void* arg)
 static void init_loop(void* arg)
 {
   while(1)
-  {
+  {  
      camera_fb_t *pic = arduino_camera_fb_get();
      // use pic->buf to access the image
-     printf("Picture taken! Its size was: %zu bytes\n", pic->len);
+	 if (pic->len > 0)
+	 {
+		 printf("Picture taken! Its size was: %d bytes\n", pic->len);
+	 } 
+     
+     if (pic->buf != NULL){
+        printf("+++++++++++++++++++++++++++\n");
+        for (int i = 0; i < pic->len; i++)
+        {
+            if (i % 48 == 0)
+            {
+                printf("\n");
+            }
+            printf("%02X ", pic->buf[i]);
+        }
+        printf("---------------------------\n");
+     }
     }
  }
 
