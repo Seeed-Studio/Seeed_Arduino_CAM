@@ -470,10 +470,11 @@ static void camera_fb_done()
 }
 
 
-static void dma_finish_frame()
+static void dma_finish_frame(uint8_t *buf)
 {
     if (!s_state->fb->ref)
     {  
+        s_state->fb->buf = buf;
         s_state->fb->width = resolution[s_state->sensor.status.framesize].width;
         s_state->fb->height = resolution[s_state->sensor.status.framesize].height;
         s_state->fb->len = (s_state->height) * (s_state->width) * s_state->fb_bytes_per_pixel;
@@ -494,7 +495,7 @@ static void dma_filter_task(void *pvParameters)
         if(xQueueReceive(s_state->data_ready, buf_idx, portMAX_DELAY) == pdTRUE) {
             printf("into xxQueueReceive\n");
             //this is the end of the frame
-            dma_finish_frame();
+            dma_finish_frame(buf_idx);
         }
     }
 }
