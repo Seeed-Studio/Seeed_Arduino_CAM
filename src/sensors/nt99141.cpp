@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <STM32FreeRTOS.h>
+#include <Seeed_Arduino_FreeRTOS.h>
 #include "driver/include/sccb.h"
 #include "sensors/include/nt99141.h"
 #include "sensors/include/nt99141_regs.h"

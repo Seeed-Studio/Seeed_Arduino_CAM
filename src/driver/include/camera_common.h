@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <STM32FreeRTOS.h>
+#include <Seeed_Arduino_FreeRTOS.h>
 #include "driver/include/arduino_camera.h"
 #include "driver/include/sensor.h"
 

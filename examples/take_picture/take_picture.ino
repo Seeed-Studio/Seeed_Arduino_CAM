@@ -32,8 +32,8 @@
 // #include <nvs_flash.h>
 #include <sys/param.h>
 #include <string.h>
-#include "STM32FreeRTOS.h"
 #include "seeed_camera.h"
+#include <Seeed_Arduino_FreeRTOS.h>
 #define ESP_OK 0
 
 TaskHandle_t loopTaskHandle = NULL;

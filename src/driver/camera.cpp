@@ -405,7 +405,7 @@ static void signal_dma_buf_received(bool* need_yield)
         }
     }
     *need_yield = (ret == pdTRUE && higher_priority_task_woken == pdTRUE);
-    portYIELD_FROM_ISR();
+    portYIELD_FROM_ISR(*need_yield);
 }
 
 

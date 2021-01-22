@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <STM32FreeRTOS.h>
+#include <Seeed_Arduino_FreeRTOS.h>
 #include "driver/include/sccb.h"
 #include "sensors/include/ov5640.h"
 #include "sensors/include/ov5640_regs.h"
