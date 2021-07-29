@@ -23,7 +23,7 @@ static int set_bank(sensor_t *sensor, ov2640_bank_t bank)
     int res = 0;
     if (bank != reg_bank) {
         reg_bank = bank;
-        res = SCCB_Write(sensor->slv_addr, BANK_SEL, bank);
+        res = SCCB_Write(sensor->sccb, sensor->slv_addr, BANK_SEL, bank);
     }
     return res;
 }
@@ -35,7 +35,7 @@ static int write_regs(sensor_t *sensor, const uint8_t (*regs)[2])
         if (regs[i][0] == BANK_SEL) {
             res = set_bank(sensor, regs[i][1]);
         } else {
-            res = SCCB_Write(sensor->slv_addr, regs[i][0], regs[i][1]);
+            res = SCCB_Write(sensor->sccb, sensor->slv_addr, regs[i][0], regs[i][1]);
         }
         if (res) {
             return res;
@@ -49,7 +49,7 @@ static int write_reg(sensor_t *sensor, ov2640_bank_t bank, uint8_t reg, uint8_t 
 {
     int ret = set_bank(sensor, bank);
     if(!ret) {
-        ret = SCCB_Write(sensor->slv_addr, reg, value);
+        ret = SCCB_Write(sensor->sccb, sensor->slv_addr, reg, value);
     }
     return ret;
 }
@@ -63,9 +63,9 @@ static int set_reg_bits(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t off
     if(ret) {
         return ret;
     }
-    c_value = SCCB_Read(sensor->slv_addr, reg);
+    c_value = SCCB_Read(sensor->sccb, sensor->slv_addr, reg);
     new_value = (c_value & ~(mask << offset)) | ((value & mask) << offset);
-    ret = SCCB_Write(sensor->slv_addr, reg, new_value);
+    ret = SCCB_Write(sensor->sccb, sensor->slv_addr, reg, new_value);
     return ret;
 }
 
@@ -74,7 +74,7 @@ static int read_reg(sensor_t *sensor, ov2640_bank_t bank, uint8_t reg)
     if(set_bank(sensor, bank)){
         return 0;
     }
-    return SCCB_Read(sensor->slv_addr, reg);
+    return SCCB_Read(sensor->sccb, sensor->slv_addr, reg);
 }
 
 static uint8_t get_reg_bits(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t offset, uint8_t mask)
@@ -488,11 +488,11 @@ static int _set_pll(sensor_t *sensor, int bypass, int multiplier, int sys_div, i
     return -1;
 }
 
-static int set_xclk(sensor_t *sensor, int timer, int xclk)
+static int set_xclk(sensor_t *sensor, int pin, int xclk)
 {
     int ret = 0;
     sensor->xclk_freq_hz = xclk * 1000000U;
-    ret = xclk_timer_conf(timer, sensor->xclk_freq_hz);
+    ret = xclk_timer_conf(timer, pin, sensor->xclk_freq_hz);
     return ret;
 }
 
@@ -538,16 +538,16 @@ static int init_status(sensor_t *sensor){
     return 0;
 }
 
-int ov2640_detect(int slv_addr, sensor_id_t *id)
+int ov2640_detect(sensor_t * sensor, sensor_id_t *id)
 {
     if (OV2640_SCCB_ADDR == slv_addr) {
-        SCCB_Write(slv_addr, 0xFF, 0x01);//bank sensor
-        uint16_t PID = SCCB_Read(slv_addr, 0x0A);
+        SCCB_Write(sensor->sccb, sensor->slv_addr, 0xFF, 0x01);//bank sensor
+        uint16_t PID = SCCB_Read(sensor->sccb, sensor->slv_addr, 0x0A);
         if (OV2640_PID == PID) {
             id->PID = PID;
-            id->VER = SCCB_Read(slv_addr, REG_VER);
-            id->MIDL = SCCB_Read(slv_addr, REG_MIDL);
-            id->MIDH = SCCB_Read(slv_addr, REG_MIDH);
+            id->VER = SCCB_Read(sensor->sccb, sensor->slv_addr, REG_VER);
+            id->MIDL = SCCB_Read(sensor->sccb, sensor->slv_addr, REG_MIDL);
+            id->MIDH = SCCB_Read(sensor->sccb, sensor->slv_addr, REG_MIDH);
             return PID;
         } else {
             CAM_INFO("Mismatch PID=0x%x", PID);

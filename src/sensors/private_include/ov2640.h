@@ -18,7 +18,7 @@
  *     0:       Can't detect this sensor
  *     Nonzero: This sensor has been detected
  */
-int ov2640_detect(int slv_addr, sensor_id_t *id);
+int ov2640_detect(sensor_t * sensor, sensor_id_t *id);
 
 /**
  * @brief initialize sensor function pointers
