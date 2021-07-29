@@ -21,13 +21,8 @@
 #include "gc2145.h"
 #include "gc2145_regs.h"
 #include "gc2145_settings.h"
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
+#include "cam_log.h"
 static const char *TAG = "gc2145";
-#endif
 
 #define H8(v) ((v)>>8)
 #define L8(v) ((v)&0xff)
@@ -39,7 +34,7 @@ static int read_reg(uint8_t slv_addr, const uint16_t reg)
     int ret = SCCB_Read(slv_addr, reg);
 #ifdef REG_DEBUG_ON
     if (ret < 0) {
-        ESP_LOGE(TAG, "READ REG 0x%04x FAILED: %d", reg, ret);
+        CAM_ERROR("READ REG 0x%04x FAILED: %d", reg, ret);
     }
 #endif
     return ret;
@@ -56,14 +51,14 @@ static int write_reg(uint8_t slv_addr, const uint16_t reg, uint8_t value)
         return old_value;
     }
     if ((uint8_t)old_value != value) {
-        ESP_LOGI(TAG, "NEW REG 0x%04x: 0x%02x to 0x%02x", reg, (uint8_t)old_value, value);
+        CAM_INFO("NEW REG 0x%04x: 0x%02x to 0x%02x", reg, (uint8_t)old_value, value);
         ret = SCCB_Write(slv_addr, reg, value);
     } else {
-        ESP_LOGD(TAG, "OLD REG 0x%04x: 0x%02x", reg, (uint8_t)old_value);
+        CAM_DEBUG("OLD REG 0x%04x: 0x%02x", reg, (uint8_t)old_value);
         ret = SCCB_Write(slv_addr, reg, value);//maybe not?
     }
     if (ret < 0) {
-        ESP_LOGE(TAG, "WRITE REG 0x%04x FAILED: %d", reg, ret);
+        CAM_ERROR("WRITE REG 0x%04x FAILED: %d", reg, ret);
     }
 #endif
     return ret;
@@ -93,7 +88,7 @@ static int write_regs(uint8_t slv_addr, const uint16_t (*regs)[2])
     int i = 0, ret = 0;
     while (!ret && regs[i][0] != REGLIST_TAIL) {
         if (regs[i][0] == REG_DLY) {
-            vTaskDelay(regs[i][1] / portTICK_PERIOD_MS);
+            delay(regs[i][1]);
         } else {
             ret = write_reg(slv_addr, regs[i][0], regs[i][1]);
         }
@@ -105,23 +100,23 @@ static int write_regs(uint8_t slv_addr, const uint16_t (*regs)[2])
 static void print_regs(uint8_t slv_addr)
 {
 #ifdef DEBUG_PRINT_REG
-    vTaskDelay(pdMS_TO_TICKS(100));
-    ESP_LOGI(TAG, "REG list look ======================");
+    delay(100);
+    CAM_INFO("REG list look ======================");
     for (size_t i = 0xf0; i <= 0xfe; i++) {
-        ESP_LOGI(TAG, "reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
+        CAM_INFO("reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
     }
-    ESP_LOGI(TAG, "\npage 0 ===");
+    CAM_INFO("\npage 0 ===");
     write_reg(slv_addr, 0xfe, 0x00); // page 0
     for (size_t i = 0x03; i <= 0x24; i++) {
-        ESP_LOGI(TAG, "p0 reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
+        CAM_INFO("p0 reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
     }
     for (size_t i = 0x80; i <= 0xa2; i++) {
-        ESP_LOGI(TAG, "p0 reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
+        CAM_INFO("p0 reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
     }
-    ESP_LOGI(TAG, "\npage 3 ===");
+    CAM_INFO("\npage 3 ===");
     write_reg(slv_addr, 0xfe, 0x03); // page 3
     for (size_t i = 0x01; i <= 0x43; i++) {
-        ESP_LOGI(TAG, "p3 reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
+        CAM_INFO("p3 reg[0x%02x] = 0x%02x", i, read_reg(slv_addr, i));
     }
 #endif
 }
@@ -132,14 +127,14 @@ static int reset(sensor_t *sensor)
     // Software Reset: clear all registers and reset them to their default values
     ret = write_reg(sensor->slv_addr, RESET_RELATED, 0xe0);
     if (ret) {
-        ESP_LOGE(TAG, "Software Reset FAILED!");
+        CAM_ERROR("Software Reset FAILED!");
         return ret;
     }
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    delay(100);
     ret = write_regs(sensor->slv_addr, gc2145_default_init_regs);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Camera defaults loaded");
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        CAM_DEBUG("Camera defaults loaded");
+        delay(100);
 #ifdef CONFIG_IDF_TARGET_ESP32
         write_reg(sensor->slv_addr, 0xfe, 0x00);
         //ensure pclk <= 15MHz for esp32
@@ -166,14 +161,14 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
         ret = set_reg_bits(sensor->slv_addr, P0_OUTPUT_FORMAT, 0, 0x1f, 2); //yuv422
         break;
     default:
-        ESP_LOGW(TAG, "unsupport format");
+        CAM_WARN("unsupport format");
         ret = -1;
         break;
     }
 
     if (ret == 0) {
         sensor->pixformat = pixformat;
-        ESP_LOGD(TAG, "Set pixformat to: %u", pixformat);
+        CAM_DEBUG("Set pixformat to: %u", pixformat);
     }
     return ret;
 }
@@ -182,7 +177,7 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
 {
     int ret = 0;
     if (framesize > FRAMESIZE_UXGA) {
-        ESP_LOGW(TAG, "Invalid framesize: %u", framesize);
+        CAM_WARN("Invalid framesize: %u", framesize);
         framesize = FRAMESIZE_UXGA;
     }
     sensor->status.framesize = framesize;
@@ -233,7 +228,7 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
             win_h = h * cfg->ratio_denominator / cfg->ratio_numerator;
             row_s = (resolution[FRAMESIZE_UXGA].height - win_h) / 2;
             col_s = (resolution[FRAMESIZE_UXGA].width - win_w) / 2;
-            ESP_LOGI(TAG, "subsample win:%dx%d, ratio:%f", win_w, win_h, (float)cfg->ratio_numerator / (float)cfg->ratio_denominator);
+            CAM_INFO("subsample win:%dx%d, ratio:%f", win_w, win_h, (float)cfg->ratio_numerator / (float)cfg->ratio_denominator);
             break;
         }
     }
@@ -291,7 +286,7 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
 #endif
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set framesize to: %ux%u", w, h);
+        CAM_DEBUG("Set framesize to: %ux%u", w, h);
     }
     return ret;
 
@@ -304,7 +299,7 @@ static int set_hmirror(sensor_t *sensor, int enable)
     ret = write_reg(sensor->slv_addr, 0xfe, 0x00);
     ret |= set_reg_bits(sensor->slv_addr, P0_ANALOG_MODE1, 0, 0x01, enable != 0);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set h-mirror to: %d", enable);
+        CAM_DEBUG("Set h-mirror to: %d", enable);
     }
     return ret;
 }
@@ -316,7 +311,7 @@ static int set_vflip(sensor_t *sensor, int enable)
     ret = write_reg(sensor->slv_addr, 0xfe, 0x00);
     ret |= set_reg_bits(sensor->slv_addr, P0_ANALOG_MODE1, 1, 0x01, enable != 0);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set v-flip to: %d", enable);
+        CAM_DEBUG("Set v-flip to: %d", enable);
     }
     return ret;
 }
@@ -328,7 +323,7 @@ static int set_colorbar(sensor_t *sensor, int enable)
     // ret |= set_reg_bits(sensor->slv_addr, P0_DEBUG_MODE3, 3, 0x01, enable);
     if (ret == 0) {
         sensor->status.colorbar = enable;
-        ESP_LOGD(TAG, "Set colorbar to: %d", enable);
+        CAM_DEBUG("Set colorbar to: %d", enable);
     }
     return ret;
 }
@@ -337,7 +332,7 @@ static int get_reg(sensor_t *sensor, int reg, int mask)
 {
     int ret = 0;
     if (mask > 0xFF) {
-        ESP_LOGE(TAG, "mask should not more than 0xff");
+        CAM_ERROR("mask should not more than 0xff");
     } else {
         ret = read_reg(sensor->slv_addr, reg);
     }
@@ -351,7 +346,7 @@ static int set_reg(sensor_t *sensor, int reg, int mask, int value)
 {
     int ret = 0;
     if (mask > 0xFF) {
-        ESP_LOGE(TAG, "mask should not more than 0xff");
+        CAM_ERROR("mask should not more than 0xff");
     } else {
         ret = read_reg(sensor->slv_addr, reg);
     }
@@ -403,12 +398,12 @@ static int init_status(sensor_t *sensor)
 
 static int set_dummy(sensor_t *sensor, int val)
 {
-    ESP_LOGW(TAG, "Unsupported");
+    CAM_WARN("Unsupported");
     return -1;
 }
 static int set_gainceiling_dummy(sensor_t *sensor, gainceiling_t val)
 {
-    ESP_LOGW(TAG, "Unsupported");
+    CAM_WARN("Unsupported");
     return -1;
 }
 
@@ -422,7 +417,7 @@ int gc2145_detect(int slv_addr, sensor_id_t *id)
             id->PID = PID;
             return PID;
         } else {
-            ESP_LOGI(TAG, "Mismatch PID=0x%x", PID);
+            CAM_INFO("Mismatch PID=0x%x", PID);
         }
     }
     return 0;
@@ -470,6 +465,6 @@ int gc2145_init(sensor_t *sensor)
     sensor->set_pll = NULL;
     sensor->set_xclk = NULL;
 
-    ESP_LOGD(TAG, "GC2145 Attached");
+    CAM_DEBUG("GC2145 Attached");
     return 0;
 }

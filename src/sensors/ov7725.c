@@ -14,16 +14,8 @@
 #include "xclk.h"
 #include "ov7725.h"
 #include "ov7725_regs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
+#include "cam_log.h"
 static const char* TAG = "ov7725";
-#endif
-
 
 static const uint8_t default_regs[][2] = {
     {COM3,          COM3_SWAP_YUV},
@@ -177,7 +169,7 @@ static int reset(sensor_t *sensor)
     SCCB_Write(sensor->slv_addr, COM7, COM7_RESET);
 
     // Delay 10 ms
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    delay(10);
 
     // Write default regsiters
     for (i=0, regs = default_regs; regs[i][0]; i++) {
@@ -185,7 +177,7 @@ static int reset(sensor_t *sensor)
     }
 
     // Delay
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    delay(30);
 
     return 0;
 }
@@ -214,7 +206,7 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
     ret = SCCB_Write(sensor->slv_addr, COM7, reg);
 
     // Delay
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    delay(30);
 
     return ret;
 }
@@ -270,7 +262,7 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
     }
 
     // Delay
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    delay(30);
 
     return ret;
 }
@@ -343,7 +335,7 @@ static int set_dcw_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, 0x65, 2, 1, !enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set dcw to: %d", enable);
+        CAM_DEBUG("Set dcw to: %d", enable);
         sensor->status.dcw = enable;
     }
     return ret;
@@ -354,7 +346,7 @@ static int set_aec2(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, COM8, 7, 1, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set aec2 to: %d", enable);
+        CAM_DEBUG("Set aec2 to: %d", enable);
         sensor->status.aec2 = enable;
     }
     return ret;
@@ -365,7 +357,7 @@ static int set_bpc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, 0x64, 1, 1, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set bpc to: %d", enable);
+        CAM_DEBUG("Set bpc to: %d", enable);
         sensor->status.bpc = enable;
     }
     return ret;
@@ -376,7 +368,7 @@ static int set_wpc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, 0x64, 0, 1, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set wpc to: %d", enable);
+        CAM_DEBUG("Set wpc to: %d", enable);
         sensor->status.wpc = enable;
     }
     return ret;
@@ -387,7 +379,7 @@ static int set_raw_gma_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, 0x64, 2, 1, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set raw_gma to: %d", enable);
+        CAM_DEBUG("Set raw_gma to: %d", enable);
         sensor->status.raw_gma = enable;
     }
     return ret;
@@ -398,7 +390,7 @@ static int set_lenc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, LC_CTR, 0, 1, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set lenc to: %d", enable);
+        CAM_DEBUG("Set lenc to: %d", enable);
         sensor->status.lenc = enable;
     }
     return ret;
@@ -410,7 +402,7 @@ static int set_agc_gain(sensor_t *sensor, int gain)
     int ret = 0;
     ret = set_reg_bits(sensor, COM9, 4, 3, gain % 5);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set gain to: %d", gain);
+        CAM_DEBUG("Set gain to: %d", gain);
         sensor->status.agc_gain = gain;
     }
     return ret;
@@ -421,7 +413,7 @@ static int set_aec_value(sensor_t *sensor, int value)
     int ret = 0;
     ret =  SCCB_Write(sensor->slv_addr, AEC, value & 0xff) | SCCB_Write(sensor->slv_addr, AECH, value >> 8);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set aec_value to: %d", value);
+        CAM_DEBUG("Set aec_value to: %d", value);
         sensor->status.aec_value = value;
     }
     return ret;
@@ -432,7 +424,7 @@ static int set_awb_gain_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = set_reg_bits(sensor, 0x63, 7, 1, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set awb_gain to: %d", enable);
+        CAM_DEBUG("Set awb_gain to: %d", enable);
         sensor->status.awb_gain = enable;
     }
     return ret;
@@ -443,7 +435,7 @@ static int set_brightness(sensor_t *sensor, int level)
     int ret = 0;
     ret = SCCB_Write(sensor->slv_addr, 0x9B, level);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set brightness to: %d", level);
+        CAM_DEBUG("Set brightness to: %d", level);
         sensor->status.brightness = level;
     }
     return ret;
@@ -454,7 +446,7 @@ static int set_contrast(sensor_t *sensor, int level)
     int ret = 0;
     ret = SCCB_Write(sensor->slv_addr, 0x9C, level);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set contrast to: %d", level);
+        CAM_DEBUG("Set contrast to: %d", level);
         sensor->status.contrast = level;
     }
     return ret;
@@ -514,7 +506,7 @@ int ov7725_detect(int slv_addr, sensor_id_t *id)
             id->MIDH = SCCB_Read(slv_addr, REG_MIDH);
             return PID;
         } else {
-            ESP_LOGI(TAG, "Mismatch PID=0x%x", PID);
+            CAM_INFO("Mismatch PID=0x%x", PID);
         }
     }
     return 0;
@@ -569,7 +561,7 @@ int ov7725_init(sensor_t *sensor)
     sensor->id.PID = SCCB_Read(sensor->slv_addr, REG_PID);
     sensor->id.VER = SCCB_Read(sensor->slv_addr, REG_VER);
     
-    ESP_LOGD(TAG, "OV7725 Attached");
+    CAM_DEBUG("OV7725 Attached");
 
     return 0;
 }

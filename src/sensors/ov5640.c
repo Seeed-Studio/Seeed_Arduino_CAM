@@ -14,15 +14,8 @@
 #include "ov5640.h"
 #include "ov5640_regs.h"
 #include "ov5640_settings.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
+#include "cam_log.h"
 static const char *TAG = "ov5640";
-#endif
 
 //#define REG_DEBUG_ON
 
@@ -30,7 +23,7 @@ static int read_reg(uint8_t slv_addr, const uint16_t reg){
     int ret = SCCB_Read16(slv_addr, reg);
 #ifdef REG_DEBUG_ON
     if (ret < 0) {
-        ESP_LOGE(TAG, "READ REG 0x%04x FAILED: %d", reg, ret);
+        CAM_ERROR("READ REG 0x%04x FAILED: %d", reg, ret);
     }
 #endif
     return ret;
@@ -115,14 +108,14 @@ static int write_reg(uint8_t slv_addr, const uint16_t reg, uint8_t value){
         return old_value;
     }
     if ((uint8_t)old_value != value) {
-        ESP_LOGI(TAG, "NEW REG 0x%04x: 0x%02x to 0x%02x", reg, (uint8_t)old_value, value);
+        CAM_INFO("NEW REG 0x%04x: 0x%02x to 0x%02x", reg, (uint8_t)old_value, value);
         ret = SCCB_Write16(slv_addr, reg, value);
     } else {
-        ESP_LOGD(TAG, "OLD REG 0x%04x: 0x%02x", reg, (uint8_t)old_value);
+        CAM_DEBUG("OLD REG 0x%04x: 0x%02x", reg, (uint8_t)old_value);
         ret = SCCB_Write16(slv_addr, reg, value);//maybe not?
     }
     if (ret < 0) {
-        ESP_LOGE(TAG, "WRITE REG 0x%04x FAILED: %d", reg, ret);
+        CAM_ERROR("WRITE REG 0x%04x FAILED: %d", reg, ret);
     }
 #endif
     return ret;
@@ -147,7 +140,7 @@ static int write_regs(uint8_t slv_addr, const uint16_t (*regs)[2])
     int i = 0, ret = 0;
     while (!ret && regs[i][0] != REGLIST_TAIL) {
         if (regs[i][0] == REG_DLY) {
-            vTaskDelay(regs[i][1] / portTICK_PERIOD_MS);
+            delay(regs[i][1]);
         } else {
             ret = write_reg(slv_addr, regs[i][0], regs[i][1]);
         }
@@ -197,20 +190,20 @@ static int calc_sysclk(int xclk, bool pll_bypass, int pll_multiplier, int pll_sy
 
     unsigned int SYSCLK = PLL_CLK / 4;
 
-    ESP_LOGI(TAG, "Calculated XVCLK: %d Hz, REFIN: %u Hz, VCO: %u Hz, PLL_CLK: %u Hz, SYSCLK: %u Hz, PCLK: %u Hz", xclk, REFIN, VCO, PLL_CLK, SYSCLK, PCLK);
+    CAM_INFO("Calculated XVCLK: %d Hz, REFIN: %u Hz, VCO: %u Hz, PLL_CLK: %u Hz, SYSCLK: %u Hz, PCLK: %u Hz", xclk, REFIN, VCO, PLL_CLK, SYSCLK, PCLK);
     return SYSCLK;
 }
 
 static int set_pll(sensor_t *sensor, bool bypass, uint8_t multiplier, uint8_t sys_div, uint8_t pre_div, bool root_2x, uint8_t pclk_root_div, bool pclk_manual, uint8_t pclk_div){
     int ret = 0;
     if(multiplier > 252 || multiplier < 4 || sys_div > 15 || pre_div > 8 || pclk_div > 31 || pclk_root_div > 3){
-        ESP_LOGE(TAG, "Invalid arguments");
+        CAM_ERROR("Invalid arguments");
         return -1;
     }
     if(multiplier > 127){
         multiplier &= 0xFE;//only even integers above 127
     }
-    ESP_LOGI(TAG, "Set PLL: bypass: %u, multiplier: %u, sys_div: %u, pre_div: %u, root_2x: %u, pclk_root_div: %u, pclk_manual: %u, pclk_div: %u", bypass, multiplier, sys_div, pre_div, root_2x, pclk_root_div, pclk_manual, pclk_div);
+    CAM_INFO("Set PLL: bypass: %u, multiplier: %u, sys_div: %u, pre_div: %u, root_2x: %u, pclk_root_div: %u, pclk_manual: %u, pclk_div: %u", bypass, multiplier, sys_div, pre_div, root_2x, pclk_root_div, pclk_manual, pclk_div);
 
     calc_sysclk(sensor->xclk_freq_hz, bypass, multiplier, sys_div, pre_div, root_2x, pclk_root_div, pclk_manual, pclk_div);
 
@@ -240,7 +233,7 @@ static int set_pll(sensor_t *sensor, bool bypass, uint8_t multiplier, uint8_t sy
         ret = write_reg(sensor->slv_addr, 0x3103, 0x13);// system clock from pll, bit[1]
     }
     if(ret){
-        ESP_LOGE(TAG, "set_sensor_pll FAILED!");
+        CAM_ERROR("set_sensor_pll FAILED!");
     }
     return ret;
 }
@@ -250,19 +243,19 @@ static int set_ae_level(sensor_t *sensor, int level);
 static int reset(sensor_t *sensor)
 {
     //dump_regs(sensor);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    delay(100);
     int ret = 0;
     // Software Reset: clear all registers and reset them to their default values
     ret = write_reg(sensor->slv_addr, SYSTEM_CTROL0, 0x82);
     if(ret){
-        ESP_LOGE(TAG, "Software Reset FAILED!");
+        CAM_ERROR("Software Reset FAILED!");
         return ret;
     }
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    delay(100);
     ret = write_regs(sensor->slv_addr, sensor_default_regs);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Camera defaults loaded");
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        CAM_DEBUG("Camera defaults loaded");
+        delay(100);
         //write_regs(sensor->slv_addr, sensor_regs_awb0);
         //write_regs(sensor->slv_addr, sensor_regs_gamma1);
     }
@@ -297,14 +290,14 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
         break;
 
     default:
-        ESP_LOGE(TAG, "Unsupported pixformat: %u", pixformat);
+        CAM_ERROR("Unsupported pixformat: %u", pixformat);
         return -1;
     }
 
     ret = write_regs(sensor->slv_addr, regs);
     if(ret == 0) {
         sensor->pixformat = pixformat;
-        ESP_LOGD(TAG, "Set pixformat to: %u", pixformat);
+        CAM_DEBUG("Set pixformat to: %u", pixformat);
     }
     return ret;
 }
@@ -359,7 +352,7 @@ static int set_image_options(sensor_t *sensor)
     if(write_reg(sensor->slv_addr, TIMING_TC_REG20, reg20)
         || write_reg(sensor->slv_addr, TIMING_TC_REG21, reg21)
         || write_reg(sensor->slv_addr, 0x4514, reg4514)){
-        ESP_LOGE(TAG, "Setting Image Options Failed");
+        CAM_ERROR("Setting Image Options Failed");
         return -1;
     }
 
@@ -373,7 +366,7 @@ static int set_image_options(sensor_t *sensor)
             || write_reg(sensor->slv_addr, Y_INCREMENT, 0x31);//odd:3, even: 1
     }
 
-    ESP_LOGD(TAG, "Set Image Options: Compression: %u, Binning: %u, V-Flip: %u, H-Mirror: %u, Reg-4514: 0x%02x",
+    CAM_DEBUG("Set Image Options: Compression: %u, Binning: %u, V-Flip: %u, H-Mirror: %u, Reg-4514: 0x%02x",
         sensor->pixformat == PIXFORMAT_JPEG, sensor->status.binning, sensor->status.vflip, sensor->status.hmirror, reg4514);
     return ret;
 }
@@ -385,7 +378,7 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
     sensor->status.framesize = framesize;
 
     if(framesize > FRAMESIZE_QSXGA){
-        ESP_LOGE(TAG, "Invalid framesize: %u", framesize);
+        CAM_ERROR("Invalid framesize: %u", framesize);
         return -1;
     }
     uint16_t w = resolution[framesize].width;
@@ -453,13 +446,13 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set framesize to: %ux%u", w, h);
+        CAM_DEBUG("Set framesize to: %ux%u", w, h);
     }
     return ret;
 
 fail:
     sensor->status.framesize = old_framesize;
-    ESP_LOGE(TAG, "Setting framesize to: %ux%u failed", w, h);
+    CAM_ERROR("Setting framesize to: %ux%u failed", w, h);
     return ret;
 }
 
@@ -469,7 +462,7 @@ static int set_hmirror(sensor_t *sensor, int enable)
     sensor->status.hmirror = enable;
     ret = set_image_options(sensor);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set h-mirror to: %d", enable);
+        CAM_DEBUG("Set h-mirror to: %d", enable);
     }
     return ret;
 }
@@ -480,7 +473,7 @@ static int set_vflip(sensor_t *sensor, int enable)
     sensor->status.vflip = enable;
     ret = set_image_options(sensor);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set v-flip to: %d", enable);
+        CAM_DEBUG("Set v-flip to: %d", enable);
     }
     return ret;
 }
@@ -491,7 +484,7 @@ static int set_quality(sensor_t *sensor, int qs)
     ret = write_reg(sensor->slv_addr, COMPRESSION_CTRL07, qs & 0x3f);
     if (ret == 0) {
         sensor->status.quality = qs;
-        ESP_LOGD(TAG, "Set quality to: %d", qs);
+        CAM_DEBUG("Set quality to: %d", qs);
     }
     return ret;
 }
@@ -502,7 +495,7 @@ static int set_colorbar(sensor_t *sensor, int enable)
     ret = write_reg_bits(sensor->slv_addr, PRE_ISP_TEST_SETTING_1, TEST_COLOR_BAR, enable);
     if (ret == 0) {
         sensor->status.colorbar = enable;
-        ESP_LOGD(TAG, "Set colorbar to: %d", enable);
+        CAM_DEBUG("Set colorbar to: %d", enable);
     }
     return ret;
 }
@@ -512,7 +505,7 @@ static int set_gain_ctrl(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, AEC_PK_MANUAL, AEC_PK_MANUAL_AGC_MANUALEN, !enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set gain_ctrl to: %d", enable);
+        CAM_DEBUG("Set gain_ctrl to: %d", enable);
         sensor->status.agc = enable;
     }
     return ret;
@@ -523,7 +516,7 @@ static int set_exposure_ctrl(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, AEC_PK_MANUAL, AEC_PK_MANUAL_AEC_MANUALEN, !enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set exposure_ctrl to: %d", enable);
+        CAM_DEBUG("Set exposure_ctrl to: %d", enable);
         sensor->status.aec = enable;
     }
     return ret;
@@ -534,7 +527,7 @@ static int set_whitebal(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, ISP_CONTROL_01, 0x01, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set awb to: %d", enable);
+        CAM_DEBUG("Set awb to: %d", enable);
         sensor->status.awb = enable;
     }
     return ret;
@@ -546,7 +539,7 @@ static int set_dcw_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, 0x5183, 0x80, !enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set dcw to: %d", enable);
+        CAM_DEBUG("Set dcw to: %d", enable);
         sensor->status.dcw = enable;
     }
     return ret;
@@ -558,7 +551,7 @@ static int set_aec2(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, 0x3a00, 0x04, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set aec2 to: %d", enable);
+        CAM_DEBUG("Set aec2 to: %d", enable);
         sensor->status.aec2 = enable;
     }
     return ret;
@@ -569,7 +562,7 @@ static int set_bpc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, 0x5000, 0x04, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set bpc to: %d", enable);
+        CAM_DEBUG("Set bpc to: %d", enable);
         sensor->status.bpc = enable;
     }
     return ret;
@@ -580,7 +573,7 @@ static int set_wpc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, 0x5000, 0x02, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set wpc to: %d", enable);
+        CAM_DEBUG("Set wpc to: %d", enable);
         sensor->status.wpc = enable;
     }
     return ret;
@@ -592,7 +585,7 @@ static int set_raw_gma_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, 0x5000, 0x20, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set raw_gma to: %d", enable);
+        CAM_DEBUG("Set raw_gma to: %d", enable);
         sensor->status.raw_gma = enable;
     }
     return ret;
@@ -603,7 +596,7 @@ static int set_lenc_dsp(sensor_t *sensor, int enable)
     int ret = 0;
     ret = write_reg_bits(sensor->slv_addr, 0x5000, 0x80, enable);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set lenc to: %d", enable);
+        CAM_DEBUG("Set lenc to: %d", enable);
         sensor->status.lenc = enable;
     }
     return ret;
@@ -645,7 +638,7 @@ static int set_agc_gain(sensor_t *sensor, int gain)
 
     ret = write_reg(sensor->slv_addr, 0x350a, gainv >> 8) || write_reg(sensor->slv_addr, 0x350b, gainv & 0xff);
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set agc_gain to: %d", gain);
+        CAM_DEBUG("Set agc_gain to: %d", gain);
         sensor->status.agc_gain = gain;
     }
     return ret;
@@ -674,7 +667,7 @@ static int set_aec_value(sensor_t *sensor, int value)
     int ret = 0, max_val = 0;
     max_val = read_reg16(sensor->slv_addr, 0x380e);
     if (max_val < 0) {
-        ESP_LOGE(TAG, "Could not read max aec_value");
+        CAM_ERROR("Could not read max aec_value");
         return -1;
     }
     if (value > max_val) {
@@ -686,7 +679,7 @@ static int set_aec_value(sensor_t *sensor, int value)
         || write_reg(sensor->slv_addr, 0x3502, (value << 4) & 0xF0);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set aec_value to: %d / %d", value, max_val);
+        CAM_DEBUG("Set aec_value to: %d / %d", value, max_val);
         sensor->status.aec_value = value;
     }
     return ret;
@@ -722,7 +715,7 @@ static int set_ae_level(sensor_t *sensor, int level)
         || write_reg(sensor->slv_addr, 0x3a1f, fast_low);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set ae_level to: %d", level);
+        CAM_DEBUG("Set ae_level to: %d", level);
         sensor->status.ae_level = level;
     }
     return ret;
@@ -765,7 +758,7 @@ static int set_wb_mode(sensor_t *sensor, int mode)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set wb_mode to: %d", mode);
+        CAM_DEBUG("Set wb_mode to: %d", mode);
         sensor->status.wb_mode = mode;
     }
     return ret;
@@ -781,7 +774,7 @@ static int set_awb_gain_dsp(sensor_t *sensor, int enable)
 
     if (ret == 0) {
         sensor->status.wb_mode = old_mode;
-        ESP_LOGD(TAG, "Set awb_gain to: %d", enable);
+        CAM_DEBUG("Set awb_gain to: %d", enable);
         sensor->status.awb_gain = enable;
     }
     return ret;
@@ -801,7 +794,7 @@ static int set_special_effect(sensor_t *sensor, int effect)
         || write_reg(sensor->slv_addr, 0x5003, regs[3]);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set special_effect to: %d", effect);
+        CAM_DEBUG("Set special_effect to: %d", effect);
         sensor->status.special_effect = effect;
     }
     return ret;
@@ -845,7 +838,7 @@ static int set_brightness(sensor_t *sensor, int level)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set brightness to: %d", level);
+        CAM_DEBUG("Set brightness to: %d", level);
         sensor->status.brightness = level;
     }
     return ret;
@@ -860,7 +853,7 @@ static int set_contrast(sensor_t *sensor, int level)
     ret = write_reg(sensor->slv_addr, 0x5586, (level + 4) << 3);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set contrast to: %d", level);
+        CAM_DEBUG("Set contrast to: %d", level);
         sensor->status.contrast = level;
     }
     return ret;
@@ -882,7 +875,7 @@ static int set_saturation(sensor_t *sensor, int level)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set saturation to: %d", level);
+        CAM_DEBUG("Set saturation to: %d", level);
         sensor->status.saturation = level;
     }
     return ret;
@@ -909,7 +902,7 @@ static int set_sharpness(sensor_t *sensor, int level)
         || write_reg(sensor->slv_addr, 0x530c, 0x06);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set sharpness to: %d", level);
+        CAM_DEBUG("Set sharpness to: %d", level);
         sensor->status.sharpness = level;
     }
     return ret;
@@ -923,7 +916,7 @@ static int set_gainceiling(sensor_t *sensor, gainceiling_t level)
        || write_reg(sensor->slv_addr, 0x3A19, l & 0xFF);
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set gainceiling to: %d", l);
+        CAM_DEBUG("Set gainceiling to: %d", l);
         sensor->status.gainceiling = l;
     }
     return ret;
@@ -950,7 +943,7 @@ static int set_denoise(sensor_t *sensor, int level)
     }
 
     if (ret == 0) {
-        ESP_LOGD(TAG, "Set denoise to: %d", level);
+        CAM_DEBUG("Set denoise to: %d", level);
         sensor->status.denoise = level;
     }
     return ret;
@@ -1083,7 +1076,7 @@ int ov5640_detect(int slv_addr, sensor_id_t *id)
             id->PID = PID;
             return PID;
         } else {
-            ESP_LOGI(TAG, "Mismatch PID=0x%x", PID);
+            CAM_INFO("Mismatch PID=0x%x", PID);
         }
     }
     return 0;

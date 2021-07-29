@@ -12,16 +12,10 @@
 #include "sccb.h"
 #include "ov7670.h"
 #include "ov7670_regs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include <stdio.h>
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
+#include "cam_log.h"
 static const char* TAG = "ov7760";
-#endif
 
 static int ov7670_clkrc = 0x01;
 
@@ -159,7 +153,7 @@ int ret = 0;
 	while ( (vals->reg_num != 0xff || vals->value != 0xff) && (ret == 0) ) {
         ret = SCCB_Write(sensor->slv_addr, vals->reg_num, vals->value);
 
-	    ESP_LOGD(TAG, "reset reg %02X, W(%02X) R(%02X)", vals->reg_num, 
+	    CAM_DEBUG("reset reg %02X, W(%02X) R(%02X)", vals->reg_num, 
                         vals->value, SCCB_Read(sensor->slv_addr, vals->reg_num) );
 		
 		vals++;
@@ -208,12 +202,12 @@ static int reset(sensor_t *sensor)
     SCCB_Write(sensor->slv_addr, COM7, COM7_RESET);
 
     // Delay 10 ms
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    delay(10);
 
     ret = ov7670_write_array(sensor, ov7670_default_regs);
 
     // Delay
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    delay(30);
 
     return ret;
 }
@@ -235,7 +229,7 @@ int ret;
         break;
     }
 
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    delay(30);
 
     /*
 	 * If we're running RGB565, we must rewrite clkrc after setting
@@ -285,7 +279,7 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
             ret = -1;   
     }
 
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    delay(30);
 
     if (ret == 0) {
         sensor->status.framesize = framesize;
@@ -405,7 +399,7 @@ int ov7670_detect(int slv_addr, sensor_id_t *id)
             id->MIDH = SCCB_Read(slv_addr, REG_MIDH);
             return PID;
         } else {
-            ESP_LOGI(TAG, "Mismatch PID=0x%x", PID);
+            CAM_INFO("Mismatch PID=0x%x", PID);
         }
     }
     return 0;
@@ -451,7 +445,7 @@ int ov7670_init(sensor_t *sensor)
     sensor->id.PID = SCCB_Read(sensor->slv_addr, REG_PID);
     sensor->id.VER = SCCB_Read(sensor->slv_addr, REG_VER);
     
-    ESP_LOGD(TAG, "OV7670 Attached");
+    CAM_DEBUG("OV7670 Attached");
     
     return 0;
 }

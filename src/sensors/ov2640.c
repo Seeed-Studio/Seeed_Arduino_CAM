@@ -14,15 +14,8 @@
 #include "ov2640.h"
 #include "ov2640_regs.h"
 #include "ov2640_settings.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
+#include "cam_log.h"
 static const char* TAG = "ov2640";
-#endif
 
 static volatile ov2640_bank_t reg_bank = BANK_MAX;
 static int set_bank(sensor_t *sensor, ov2640_bank_t bank)
@@ -102,7 +95,7 @@ static int reset(sensor_t *sensor)
 {
     int ret = 0;
     WRITE_REG_OR_RETURN(BANK_SENSOR, COM7, COM7_SRST);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    delay(10);
     WRITE_REGS_OR_RETURN(ov2640_settings_cif);
     return ret;
 }
@@ -128,7 +121,7 @@ static int set_pixformat(sensor_t *sensor, pixformat_t pixformat)
         break;
     }
     if(!ret) {
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        delay(10);
     }
 
     return ret;
@@ -184,7 +177,7 @@ static int set_window(sensor_t *sensor, ov2640_sensor_mode_t mode, int offset_x,
             c.pclk_div = 12;
         }
     }
-    ESP_LOGI(TAG, "Set PLL: clk_2x: %u, clk_div: %u, pclk_auto: %u, pclk_div: %u", c.clk_2x, c.clk_div, c.pclk_auto, c.pclk_div);
+    CAM_INFO("Set PLL: clk_2x: %u, clk_div: %u, pclk_auto: %u, pclk_div: %u", c.clk_2x, c.clk_div, c.pclk_auto, c.pclk_div);
 
     if (mode == OV2640_MODE_CIF) {
         regs = ov2640_settings_to_cif;
@@ -201,7 +194,7 @@ static int set_window(sensor_t *sensor, ov2640_sensor_mode_t mode, int offset_x,
     WRITE_REG_OR_RETURN(BANK_DSP, R_DVP_SP, c.pclk);
     WRITE_REG_OR_RETURN(BANK_DSP, R_BYPASS, R_BYPASS_DSP_EN);
 
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    delay(10);
     //required when changing resolution
     set_pixformat(sensor, sensor->pixformat);
 
@@ -557,7 +550,7 @@ int ov2640_detect(int slv_addr, sensor_id_t *id)
             id->MIDH = SCCB_Read(slv_addr, REG_MIDH);
             return PID;
         } else {
-            ESP_LOGI(TAG, "Mismatch PID=0x%x", PID);
+            CAM_INFO("Mismatch PID=0x%x", PID);
         }
     }
     return 0;
@@ -607,6 +600,6 @@ int ov2640_init(sensor_t *sensor)
     sensor->set_res_raw = set_res_raw;
     sensor->set_pll = _set_pll;
     sensor->set_xclk = set_xclk;
-    ESP_LOGD(TAG, "OV2640 Attached");
+    CAM_DEBUG("OV2640 Attached");
     return 0;
 }
