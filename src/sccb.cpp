@@ -15,19 +15,18 @@
 #include "sccb.h"
 #include "sensor.h"
 #include <stdio.h>
+#define TAG "SCCB"
 #include "cam_log.h"
-static const char *TAG = "sccb";
+
 
 int SCCB_Init(TwoWire *sccb)
 {
-    CAM_LOGI("SCCB Init");
     sccb->begin();
     return 0;
 }
 
 int SCCB_Deinit(TwoWire *sccb)
 {
-    CAM_LOGI("SCCB Init");
     sccb->end();
     return 0;
 }

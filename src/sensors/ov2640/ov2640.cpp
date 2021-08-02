@@ -10,20 +10,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sccb.h"
-#include "xclk.h"
-#include "ov2640.h"
+#include "sensor.h"
 #include "ov2640_regs.h"
 #include "ov2640_settings.h"
+
+#define TAG "OV2640"
 #include "cam_log.h"
-static const char* TAG = "ov2640";
+
 
 static volatile ov2640_bank_t reg_bank = BANK_MAX;
-static int set_bank(sensor_t *sensor, ov2640_bank_t bank)
+static int set_bank(sensor_t *sensor, uint8_t bank)
 {
     int res = 0;
-    if (bank != reg_bank) {
-        reg_bank = bank;
-        res = SCCB_Write(sensor->sccb, sensor->slv_addr, BANK_SEL, bank);
+    if ((ov2640_bank_t)bank != reg_bank) {
+        reg_bank = (ov2640_bank_t)bank;
+        res = SCCB_Write(sensor->sccb, sensor->slv_addr, BANK_SEL, reg_bank);
     }
     return res;
 }
@@ -45,7 +46,7 @@ static int write_regs(sensor_t *sensor, const uint8_t (*regs)[2])
     return res;
 }
 
-static int write_reg(sensor_t *sensor, ov2640_bank_t bank, uint8_t reg, uint8_t value)
+static int write_reg(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t value)
 {
     int ret = set_bank(sensor, bank);
     if(!ret) {
@@ -69,7 +70,7 @@ static int set_reg_bits(sensor_t *sensor, uint8_t bank, uint8_t reg, uint8_t off
     return ret;
 }
 
-static int read_reg(sensor_t *sensor, ov2640_bank_t bank, uint8_t reg)
+static int read_reg(sensor_t *sensor, uint8_t bank, uint8_t reg)
 {
     if(set_bank(sensor, bank)){
         return 0;
@@ -177,7 +178,7 @@ static int set_window(sensor_t *sensor, ov2640_sensor_mode_t mode, int offset_x,
             c.pclk_div = 12;
         }
     }
-    CAM_INFO("Set PLL: clk_2x: %u, clk_div: %u, pclk_auto: %u, pclk_div: %u", c.clk_2x, c.clk_div, c.pclk_auto, c.pclk_div);
+    CAM_LOGI("Set PLL: clk_2x: %u, clk_div: %u, pclk_auto: %u, pclk_div: %u", c.clk_2x, c.clk_div, c.pclk_auto, c.pclk_div);
 
     if (mode == OV2640_MODE_CIF) {
         regs = ov2640_settings_to_cif;
@@ -488,13 +489,12 @@ static int _set_pll(sensor_t *sensor, int bypass, int multiplier, int sys_div, i
     return -1;
 }
 
-static int set_xclk(sensor_t *sensor, int pin, int xclk)
-{
-    int ret = 0;
-    sensor->xclk_freq_hz = xclk * 1000000U;
-    ret = xclk_timer_conf(timer, pin, sensor->xclk_freq_hz);
-    return ret;
-}
+// static int set_xclk(sensor_t *sensor, int pin, int xclk)
+// {
+//     int ret = 0;
+//     sensor->xclk_freq_hz = xclk * 1000000U;
+//     return ret;
+// }
 
 static int init_status(sensor_t *sensor){
     sensor->status.brightness = 0;
@@ -540,7 +540,7 @@ static int init_status(sensor_t *sensor){
 
 int ov2640_detect(sensor_t * sensor, sensor_id_t *id)
 {
-    if (OV2640_SCCB_ADDR == slv_addr) {
+    if (OV2640_SCCB_ADDR == sensor->slv_addr) {
         SCCB_Write(sensor->sccb, sensor->slv_addr, 0xFF, 0x01);//bank sensor
         uint16_t PID = SCCB_Read(sensor->sccb, sensor->slv_addr, 0x0A);
         if (OV2640_PID == PID) {
@@ -550,7 +550,7 @@ int ov2640_detect(sensor_t * sensor, sensor_id_t *id)
             id->MIDH = SCCB_Read(sensor->sccb, sensor->slv_addr, REG_MIDH);
             return PID;
         } else {
-            CAM_INFO("Mismatch PID=0x%x", PID);
+            CAM_LOGI("Mismatch PID=0x%x", PID);
         }
     }
     return 0;
@@ -599,7 +599,7 @@ int ov2640_init(sensor_t *sensor)
     sensor->set_reg = set_reg;
     sensor->set_res_raw = set_res_raw;
     sensor->set_pll = _set_pll;
-    sensor->set_xclk = set_xclk;
-    CAM_DEBUG("OV2640 Attached");
+    sensor->set_xclk = NULL;
+    CAM_LOGD("OV2640 Attached");
     return 0;
 }

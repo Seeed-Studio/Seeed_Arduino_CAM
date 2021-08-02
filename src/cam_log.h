@@ -11,11 +11,11 @@ extern "C"
 #ifndef TAG
 #define TAG "CAM"
 #endif
-//  #define ENABLE_CAM_DEBUG
-// #define ENABLE_CAM_WARN
-// #define ENABLE_CAM_INFO
-// #define ENABLE_CAM_ERROR
-// #define ENABLE_CAM_TRACE
+#define ENABLE_CAM_LOGD
+#define ENABLE_CAM_LOGW
+#define ENABLE_CAM_LOGI
+#define ENABLE_CAM_LOGE
+#define ENABLE_CAM_TRACE
 
 	extern void cam_printf(const char *format, ...);
 /**
@@ -23,16 +23,16 @@ extern "C"
  *
  * Macro to expose function, line number as well as desired log message.
  */
-#ifdef ENABLE_CAM_DEBUG
-#define CAM_DEBUG(...)                                       \
+#ifdef ENABLE_CAM_LOGD
+#define CAM_LOGD(...)                                        \
 	{                                                        \
 		cam_printf("%s: ", TAG);                             \
 		cam_printf("DEBUG:   %s L#%d ", __func__, __LINE__); \
 		cam_printf(__VA_ARGS__);                             \
-		cam_printf("\n");                                    \
+		cam_printf("\n\r");                                  \
 	}
 #else
-#define CAM_DEBUG(...)
+#define CAM_LOGD(...)
 #endif
 
 /**
@@ -69,15 +69,15 @@ extern "C"
  *
  * Macro to expose desired log message.  Info messages do not include automatic function names and line numbers.
  */
-#ifdef ENABLE_CAM_INFO
-#define CAM_INFO(...)              \
+#ifdef ENABLE_CAM_LOGI
+#define CAM_LOGI(...)              \
 	{                              \
 		cam_printf("[%s]: ", TAG); \
 		cam_printf(__VA_ARGS__);   \
 		cam_printf("\n\r");        \
 	}
 #else
-#define CAM_INFO(...)
+#define CAM_LOGI(...)
 #endif
 
 /**
@@ -85,8 +85,8 @@ extern "C"
  *
  * Macro to expose function, line number as well as desired log message.
  */
-#ifdef ENABLE_CAM_WARN
-#define CAM_WARN(...)                                      \
+#ifdef ENABLE_CAM_LOGW
+#define CAM_LOGW(...)                                      \
 	{                                                      \
 		cam_printf("%s: ", TAG);                           \
 		cam_printf("WARN:  %s L#%d ", __func__, __LINE__); \
@@ -94,7 +94,7 @@ extern "C"
 		cam_printf("\n\r");                                \
 	}
 #else
-#define CAM_WARN(...)
+#define CAM_LOGW(...)
 #endif
 
 /**
@@ -102,8 +102,8 @@ extern "C"
  *
  * Macro to expose function, line number as well as desired log message.
  */
-#ifdef ENABLE_CAM_ERROR
-#define CAM_ERROR(...)                                     \
+#ifdef ENABLE_CAM_LOGE
+#define CAM_LOGE(...)                                      \
 	{                                                      \
 		cam_printf("%s: ", TAG);                           \
 		cam_printf("ERROR: %s L#%d ", __func__, __LINE__); \
@@ -111,7 +111,7 @@ extern "C"
 		cam_printf("\n\r");                                \
 	}
 #else
-#define CAM_ERROR(...)
+#define CAM_LOGE(...)
 #endif
 
 #ifdef __cplusplus

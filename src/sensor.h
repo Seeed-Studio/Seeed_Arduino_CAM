@@ -10,6 +10,8 @@
 #define __SENSOR_H__
 #include <stdint.h>
 #include <stdbool.h>
+#include <Arduino.h>
+#include <Wire.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -192,6 +194,8 @@ typedef struct _sensor {
     uint8_t  slv_addr;          // Sensor I2C slave address.
     pixformat_t pixformat;
     camera_status_t status;
+    TwoWire *sccb;
+    
     int xclk_freq_hz;
 
     // Sensor function pointers

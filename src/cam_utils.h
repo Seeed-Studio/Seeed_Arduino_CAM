@@ -9,10 +9,14 @@ extern "C"
 {
 #endif
 
-typedef int32_t cam_err_t;
+    typedef int32_t cam_err_t;
 
 #define CAM_OK 0
 #define CAM_FAIL -1
+#define CAM_ERR_NOT_FOUND -2
+#define CAM_ERR_NOT_SUPPORTED -3
+#define CAM_ERR_INVALID_STATE -4
+#define CAM_ERR_FAILED_TO_SET_FRAME_SIZE -5
 
 #ifdef __cplusplus
 }

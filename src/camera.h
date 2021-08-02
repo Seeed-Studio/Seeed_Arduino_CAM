@@ -19,12 +19,13 @@
  *
     static camera_config_t camera_example_config = {
         .sccb           = &Wire,
+        .reset_pin      = PA6,
+        .xclk_pin       = PA7,
         .xclk_freq_hz   = 20000000,
         .pixel_format   = PIXFORMAT_JPEG,
         .frame_size     = FRAMESIZE_SVGA,
         .jpeg_quality   = 10,
         .fb_count       = 2,
-        .grab_mode      = CAMERA_GRAB_WHEN_EMPTY
     };
 */
 
@@ -40,29 +41,24 @@
 extern "C" {
 #endif
 
-/**
- * @brief Configuration structure for camera initialization
- */
-typedef enum {
-    CAMERA_GRAB_WHEN_EMPTY,         /*!< Fills buffers when they are empty. Less resources but first 'fb_count' frames might be old */
-    CAMERA_GRAB_LATEST              /*!< Except when 1 frame buffer is used, queue will always contain the last 'fb_count' frames */
-} camera_grab_mode_t;
 
 /**
  * @brief Configuration structure for camera initialization
  */
 typedef struct {
 
-    TwoWire *sccb;
+    TwoWire *sccb;                  /*!< Arduino Wire(I2C) fo sccb */
 
+    int32_t pin_reset;              /*!< pin of reset signal */
+    int32_t pin_xclk;               /*!< pin of XCLK signal */
     int xclk_freq_hz;               /*!< Frequency of XCLK signal, in Hz. EXPERIMENTAL: Set to 16MHz on ESP32-S2 or ESP32-S3 to enable EDMA mode */
 
     pixformat_t pixel_format;       /*!< Format of the pixel data: PIXFORMAT_ + YUV422|GRAYSCALE|RGB565|JPEG  */
     framesize_t frame_size;         /*!< Size of the output image: FRAMESIZE_ + QVGA|CIF|VGA|SVGA|XGA|SXGA|UXGA  */
 
     int jpeg_quality;               /*!< Quality of JPEG output. 0-63 lower means higher quality  */
-    size_t fb_count;                /*!< Number of frame buffers to be allocated. If more than one, then each frame will be acquired (double speed)  */
-    camera_grab_mode_t grab_mode;   /*!< When buffers should be filled */
+    int fb_count;
+
 } camera_config_t;
 
 /**
@@ -77,20 +73,14 @@ typedef struct {
     struct timeval timestamp;   /*!< Timestamp since boot of the first DMA buffer of the frame */
 } camera_fb_t;
 
-#define ERR_CAMERA_BASE 0x20000
-#define ERR_CAMERA_NOT_DETECTED             (ERR_CAMERA_BASE + 1)
-#define ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE (ERR_CAMERA_BASE + 2)
-#define ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT (ERR_CAMERA_BASE + 3)
-#define ERR_CAMERA_NOT_SUPPORTED            (ERR_CAMERA_BASE + 4)
-
 /**
  * @brief Initialize the camera driver
  *
  * @note call camera_probe before calling this function
  *
- * This function detects and configures camera over I2C interface,
+ * This function detects and configures camera over DCMI interface,
  * allocates framebuffer and DMA buffers,
- * initializes parallel I2S input, and sets up DMA descriptors.
+ * initializes DCMI input, and sets up DMA.
  *
  * Currently this function can only be called once and there is
  * no way to de-initialize this module.
@@ -99,7 +89,7 @@ typedef struct {
  *
  * @return OK on success
  */
-err_t camera_init(const camera_config_t* config);
+cam_err_t camera_init(const camera_config_t* config);
 
 /**
  * @brief Deinitialize the camera driver
