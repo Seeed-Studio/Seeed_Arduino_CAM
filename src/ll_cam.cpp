@@ -7,6 +7,7 @@
 
 DCMI_HandleTypeDef hdcmi;
 DMA_HandleTypeDef hdma_dcmi_pssi;
+cam_state_t *cam_state = NULL;
 
 static cam_err_t MX_DCMI_Init(void)
 {
@@ -85,13 +86,18 @@ void camera_disable_out_clock(int pin)
 
 bool ll_cam_stop(cam_obj_t *cam)
 {
+    cam_state = NULL;
     HAL_DCMI_Suspend(&hdcmi);
 	HAL_DCMI_Stop(&hdcmi);
 }
 
 bool ll_cam_start(cam_obj_t *cam, int frame_pos)
 {
-    OV2640_DMA_Config(NULL, NULL);
+    cam_state = &cam->state;
+    
+    OV2640_DMA_Config(cam->frames[frame_pos].fb.buf, cam->recv_size/4);
+
+    return true;
 }
 
 cam_err_t ll_cam_config(cam_obj_t *cam, const camera_config_t *config)
@@ -281,7 +287,10 @@ extern "C"
 
     void HAL_DCMI_FrameEventCallback(DCMI_HandleTypeDef *hdcmi)
     {
-       
+       if(cam_state != NULL)
+       {
+           *cam_state = CAM_STATE_IDLE;
+       }
     }
     void HAL_DCMI_LineEventCallback(DCMI_HandleTypeDef *hdcmi)
     {

@@ -152,10 +152,13 @@ cam_err_t cam_config(const camera_config_t *config, framesize_t frame_size, uint
     cam_obj->width = resolution[frame_size].width;
     cam_obj->height = resolution[frame_size].height;
 
-    if(cam_obj->jpeg_mode){
+    if (cam_obj->jpeg_mode)
+    {
         cam_obj->recv_size = cam_obj->width * cam_obj->height / 5;
         cam_obj->fb_size = cam_obj->recv_size;
-    } else {
+    }
+    else
+    {
         cam_obj->recv_size = cam_obj->width * cam_obj->height * cam_obj->in_bytes_per_pixel;
         cam_obj->fb_size = cam_obj->width * cam_obj->height * cam_obj->fb_bytes_per_pixel;
     }
@@ -166,7 +169,6 @@ cam_err_t cam_config(const camera_config_t *config, framesize_t frame_size, uint
     CAM_LOGI("cam config ok");
     return CAM_OK;
 
-    
 err:
     cam_deinit();
     return CAM_FAIL;
@@ -200,6 +202,66 @@ cam_err_t cam_deinit(void)
 void cam_stop(void)
 {
     ll_cam_stop(cam_obj);
+}
+
+void cam_start(void)
+{
+}
+
+camera_fb_t *cam_take(uint32_t timeout)
+{
+    camera_fb_t *dma_buffer = NULL;
+    uint32_t start = millis();
+    int frame_pos = 0;
+    
+    if (cam_start_frame(&frame_pos))
+    {
+        dma_buffer = &cam_obj->frames[frame_pos].fb;
+        cam_obj->frames[frame_pos].fb.len = 0;
+        cam_obj->frames[frame_pos].en = 0;
+        cam_obj->state = CAM_STATE_READ_BUF;
+    }
+    else
+    {
+        dma_buffer = &cam_obj->frames[frame_pos].fb;
+        cam_give(dma_buffer);
+        cam_obj->state = CAM_STATE_IDLE;
+        return cam_take(timeout - (millis() - start));
+    }
+
+    while (1)
+    {
+        if (cam_obj->state == CAM_STATE_IDLE)
+        {
+            if(cam_obj->jpeg_mode)
+            {
+                // find the end marker for JPEG. Data after that can be discarded
+                int offset_e = cam_verify_jpeg_eoi(dma_buffer->buf, dma_buffer->len);
+                if (offset_e >= 0)
+                {
+                    // adjust buffer length
+                    dma_buffer->len = offset_e + sizeof(JPEG_EOI_MARKER);
+                    return dma_buffer;
+                }
+                else
+                {
+                    CAM_LOGW("NO-EOI");
+                    cam_give(dma_buffer);
+                    return cam_take(timeout - (millis() - start)); //recurse!!!!
+                }
+            }
+            dma_buffer->len = cam_obj->fb_size;
+            return dma_buffer;
+        }
+        if ((millis() - start) >= timeout)
+        {
+            CAM_LOGE("Failed to get the frame on time!");
+            cam_obj->state == CAM_STATE_IDLE;
+            return NULL;
+        }
+    }
+
+    return NULL;
 }
 
 void cam_give(camera_fb_t *dma_buffer)
