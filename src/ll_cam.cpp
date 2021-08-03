@@ -1,5 +1,9 @@
 #include "Arduino.h"
+#include "avr/pgmspace.h"
 #include "ll_cam.h"
+#include "cam_utils.h"
+#define TAG "ll cam"
+#include "cam_log.h"
 
 DCMI_HandleTypeDef hdcmi;
 DMA_HandleTypeDef hdma_dcmi_pssi;
@@ -79,9 +83,12 @@ void camera_disable_out_clock(int pin)
     }
 }
 
-bool ll_cam_stop()
+bool ll_cam_stop(cam_obj_t *cam)
 {
+    HAL_DCMI_Suspend(&hdcmi);
+	HAL_DCMI_Stop(&hdcmi);
 }
+
 bool ll_cam_start(cam_obj_t *cam, int frame_pos)
 {
     OV2640_DMA_Config(NULL, NULL);
@@ -110,6 +117,57 @@ cam_err_t ll_cam_deinit(cam_obj_t *cam)
     
     return CAM_OK;
 }
+
+
+uint8_t ll_cam_get_dma_align(cam_obj_t *cam)
+{
+    return 4;
+}
+
+size_t IRAM_ATTR ll_cam_memcpy(cam_obj_t *cam, uint8_t *out, const uint8_t *in, size_t len)
+{
+    // YUV to Grayscale
+    if (cam->in_bytes_per_pixel == 2 && cam->fb_bytes_per_pixel == 1) {
+        size_t end = len / 8;
+        for (size_t i = 0; i < end; ++i) {
+            out[0] = in[0];
+            out[1] = in[2];
+            out[2] = in[4];
+            out[3] = in[6];
+            out += 4;
+            in += 8;
+        }
+        return len / 2;
+    }
+
+    // just memcpy
+    memcpy(out, in, len);
+    return len;
+}
+
+
+cam_err_t ll_cam_set_sample_mode(cam_obj_t *cam, pixformat_t pix_format, uint32_t xclk_freq_hz, uint16_t sensor_pid)
+{
+    if (pix_format == PIXFORMAT_GRAYSCALE) {
+        if (sensor_pid == OV3660_PID || sensor_pid == OV5640_PID || sensor_pid == NT99141_PID) {
+            cam->in_bytes_per_pixel = 1;       // camera sends Y8
+        } else {
+            cam->in_bytes_per_pixel = 2;       // camera sends YU/YV
+        }
+        cam->fb_bytes_per_pixel = 1;       // frame buffer stores Y8
+    } else if (pix_format == PIXFORMAT_YUV422 || pix_format == PIXFORMAT_RGB565) {
+            cam->in_bytes_per_pixel = 2;       // camera sends YU/YV
+            cam->fb_bytes_per_pixel = 2;       // frame buffer stores YU/YV/RGB565
+    } else if (pix_format == PIXFORMAT_JPEG) {
+        cam->in_bytes_per_pixel = 1;
+        cam->fb_bytes_per_pixel = 1;
+    } else {
+        CAM_LOGE("Requested format is not supported");
+        return CAM_ERR_NOT_SUPPORTED;
+    }
+    return CAM_OK;
+}
+
 
 /**
   * @brief

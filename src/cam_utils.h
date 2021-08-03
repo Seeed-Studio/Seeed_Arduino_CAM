@@ -17,6 +17,8 @@ extern "C"
 #define CAM_ERR_NOT_SUPPORTED -3
 #define CAM_ERR_INVALID_STATE -4
 #define CAM_ERR_FAILED_TO_SET_FRAME_SIZE -5
+#define CAM_ERR_INVALID_ARG -6
+#define CAM_ERR_NO_MEM -7
 
 #ifdef __cplusplus
 }
